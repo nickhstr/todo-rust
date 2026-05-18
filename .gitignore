@@ -107,3 +107,7 @@ screenshots/
 *.png.tmp
 test-results/
 playwright-report/
+
+# k6 load test results — local per-run artifacts, large and noisy.
+k6/results/*
+!k6/results/.gitkeep

@@ -121,7 +121,12 @@ pub fn init_tracing(cfg: &ObservabilityConfig) -> Result<ObservabilityGuard, Obs
             .with(otel_trace_layer)
             .with(activator)
             .with(otel_log_layer)
-            .with(fmt::layer().json().with_target(true).with_current_span(true))
+            .with(
+                fmt::layer()
+                    .json()
+                    .with_target(true)
+                    .with_current_span(true),
+            )
             .try_init()
             .map_err(|_| ObservabilityError::AlreadySet)?,
         LogFormat::Pretty => Registry::default()

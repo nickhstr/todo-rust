@@ -44,7 +44,8 @@ pub fn build_router(
 
     // 5 logins per minute per IP — generous burst, slow refill.
     let login_limiter = RateLimiter::new(5.0 / 60.0, 5.0)
-        .trust_forwarded_for(state.config.server.trust_forwarded_for);
+        .trust_forwarded_for(state.config.server.trust_forwarded_for)
+        .enabled(state.config.rate_limit.enabled);
 
     let auth_endpoints = Router::new()
         .route(
