@@ -164,3 +164,39 @@ vendor-compress:
             command -v brotli >/dev/null && brotli -9 -f -k "$f" || true; \
         done && \
         ls -la
+
+# --- k6 load tests ---
+
+# Bring up the stack with the k6 override (rate limit off, prom remote-write on).
+# Idempotent: re-runs hit cached layers.
+k6-up:
+    docker compose -f docker/compose.yaml -f docker/compose.k6.yaml up -d --build app prometheus grafana otel-collector tempo loki db cache
+
+# Run a single scenario by name. e.g. `just k6 smoke`, `just k6 read_heavy`, `just k6 journey`.
+k6 scenario: k6-up
+    docker compose -f docker/compose.yaml -f docker/compose.k6.yaml run --rm \
+        -e GIT_SHA=$(git rev-parse --short HEAD) \
+        k6 run \
+        --out experimental-prometheus-rw=http://prometheus:9090/api/v1/write \
+        --tag scenario={{scenario}} \
+        --tag git_sha=$(git rev-parse --short HEAD) \
+        /scripts/scenarios/{{scenario}}.js
+
+# Convenience wrappers.
+k6-smoke: (k6 "smoke")
+k6-load: (k6 "read_heavy")
+k6-journey: (k6 "journey")
+
+# Run all three in sequence. just halts on non-zero exit, so a threshold
+# violation on smoke stops before load runs.
+k6-all: k6-smoke k6-load k6-journey
+
+# Remove load-test users from the DB. Idempotent.
+k6-clean-db:
+    docker compose -f docker/compose.yaml -f docker/compose.k6.yaml exec db \
+        psql -U todo -d todo -c \
+        "DELETE FROM users WHERE email LIKE 'loadtest-%@example.test' OR email LIKE 'journey-%@example.test';"
+
+# Tear down the k6 stack (leaves volumes). Use `just nuke` to wipe volumes.
+k6-down:
+    docker compose -f docker/compose.yaml -f docker/compose.k6.yaml down
