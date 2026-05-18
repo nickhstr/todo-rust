@@ -1,0 +1,40 @@
+# docker/compose.k6.yaml
+#
+# Loaded ONLY for k6 runs (`just k6-smoke` / `just k6-load` / `just k6-journey`).
+# Adds the k6 service, enables Prometheus remote-write, and disables the
+# app's per-IP rate limiter so seeding can issue many signups in a row.
+
+services:
+  app:
+    environment:
+      # Disable rate limiting only when this override is active. Default
+      # production behavior (limiter on) is preserved by the base compose.
+      APP__RATE_LIMIT__ENABLED: "false"
+
+  prometheus:
+    # Compose merges lists by replacement, so the full command list is
+    # restated here.
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.retention.time=7d'
+      - '--web.enable-remote-write-receiver'
+
+  k6:
+    image: grafana/k6:0.50.0
+    profiles: ["k6"]   # not started by `docker compose up`; only on `run --rm k6`
+    networks:
+      - default
+    environment:
+      # Emit trend metrics as gauges with these stats. Without this,
+      # Grafana panels can't easily compute percentiles via
+      # histogram_quantile() on remote-write data.
+      K6_PROMETHEUS_RW_TREND_STATS: "avg,p(50),p(95),p(99),max"
+      # k6 expects scripts at /scripts, results at /results.
+      K6_NO_USAGE_REPORT: "true"
+    volumes:
+      - ../k6/scenarios:/scripts/scenarios:ro
+      - ../k6/lib:/scripts/lib:ro
+      - ../k6/results:/results
+    depends_on:
+      app: { condition: service_started }
+      prometheus: { condition: service_started }
