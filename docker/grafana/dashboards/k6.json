@@ -18,7 +18,7 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "sum(rate(k6_http_reqs{scenario=~\"$scenario\", git_sha=~\"$git_sha\"}[30s]))",
+          "expr": "sum(rate(k6_http_reqs_total{scenario=~\"$scenario\", git_sha=~\"$git_sha\"}[30s]))",
           "legendFormat": "rps",
           "refId": "A"
         }
@@ -38,19 +38,19 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "k6_http_req_duration{scenario=~\"$scenario\", git_sha=~\"$git_sha\", stat=\"p(50)\"}",
+          "expr": "k6_http_req_duration_p50{scenario=~\"$scenario\", git_sha=~\"$git_sha\"}",
           "legendFormat": "p50",
           "refId": "A"
         },
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "k6_http_req_duration{scenario=~\"$scenario\", git_sha=~\"$git_sha\", stat=\"p(95)\"}",
+          "expr": "k6_http_req_duration_p95{scenario=~\"$scenario\", git_sha=~\"$git_sha\"}",
           "legendFormat": "p95",
           "refId": "B"
         },
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "k6_http_req_duration{scenario=~\"$scenario\", git_sha=~\"$git_sha\", stat=\"p(99)\"}",
+          "expr": "k6_http_req_duration_p99{scenario=~\"$scenario\", git_sha=~\"$git_sha\"}",
           "legendFormat": "p99",
           "refId": "C"
         }
@@ -70,8 +70,8 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "sum(rate(k6_http_req_failed{scenario=~\"$scenario\", git_sha=~\"$git_sha\"}[30s])) / clamp_min(sum(rate(k6_http_reqs{scenario=~\"$scenario\", git_sha=~\"$git_sha\"}[30s])), 1)",
-          "legendFormat": "error rate",
+          "expr": "k6_http_req_failed_rate{scenario=~\"$scenario\", git_sha=~\"$git_sha\"}",
+          "legendFormat": "failed rate",
           "refId": "A"
         }
       ],
@@ -90,7 +90,7 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "k6_http_req_duration{scenario=~\"$scenario\", git_sha=~\"$git_sha\", stat=\"p(95)\"}",
+          "expr": "k6_http_req_duration_p95{scenario=~\"$scenario\", git_sha=~\"$git_sha\"}",
           "legendFormat": "{{endpoint}}",
           "refId": "A"
         }
@@ -130,8 +130,8 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "sum(rate(k6_checks{scenario=~\"$scenario\", git_sha=~\"$git_sha\"}[30s]))",
-          "legendFormat": "checks/s",
+          "expr": "k6_checks_rate{scenario=~\"$scenario\", git_sha=~\"$git_sha\"}",
+          "legendFormat": "checks pass rate",
           "refId": "A"
         }
       ],
@@ -148,7 +148,7 @@
         "name": "scenario",
         "type": "query",
         "datasource": { "type": "prometheus", "uid": "prometheus" },
-        "query": "label_values(k6_http_reqs, scenario)",
+        "query": "label_values(k6_http_reqs_total, scenario)",
         "refresh": 2,
         "includeAll": true,
         "current": { "text": "All", "value": "$__all" }
@@ -157,7 +157,7 @@
         "name": "git_sha",
         "type": "query",
         "datasource": { "type": "prometheus", "uid": "prometheus" },
-        "query": "label_values(k6_http_reqs{scenario=~\"$scenario\"}, git_sha)",
+        "query": "label_values(k6_http_reqs_total{scenario=~\"$scenario\"}, git_sha)",
         "refresh": 2,
         "includeAll": true,
         "current": { "text": "All", "value": "$__all" }
