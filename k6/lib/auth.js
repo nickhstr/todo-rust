@@ -8,11 +8,15 @@ import { params, Endpoint } from './checks.js';
 
 // POST /signup. Returns the response. Treats 409 (user already exists)
 // as success for idempotent seeding.
-export function signup(email, password) {
+// Pass a `jar` (http.CookieJar instance) to persist the session cookie
+// across k6 iterations — the default per-VU cookie jar is cleared between
+// iterations, so long-lived VU sessions need an explicit persistent jar.
+export function signup(email, password, jar = null) {
+  const extra = jar ? { redirects: 0, jar } : { redirects: 0 };
   const res = http.post(
     `${BASE_URL}/signup`,
     { email, password },
-    params(Endpoint.Signup, { redirects: 0 }),
+    params(Endpoint.Signup, extra),
   );
   if (res.status !== 303 && res.status !== 409) {
     throw new Error(
