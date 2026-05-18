@@ -16,6 +16,11 @@ services:
       # Dev-only passwordless login. The route + bootstrap are also gated by
       # cfg(debug_assertions), so a release build ignores this even if set.
       APP__DEV__AUTO_LOGIN_EMAIL: dev@local
+      # Dev builds compile inside the running container (cargo-watch), and the
+      # bind mounts don't include `.git/`, so `build.rs` can't shell out. Pass
+      # the SHA in as an env var; build.rs reads $GIT_SHA first. `just up*`
+      # populates this from `git rev-parse HEAD` on the host.
+      GIT_SHA: ${GIT_SHA:-unknown}
     volumes:
       - ../crates:/app/crates
       - ../templates:/app/templates

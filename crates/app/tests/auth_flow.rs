@@ -122,9 +122,12 @@ async fn responses_carry_x_app_version() {
         .to_str()
         .unwrap();
     assert!(!v.is_empty());
-    // Build-time SHA: either "unknown" (no git, no $GIT_SHA) or a 40-char hex.
+    // Build-time SHA: either "unknown" (no git, no $GIT_SHA) or a hex string.
+    // We use `git rev-parse --short` which defaults to 7 chars but git can
+    // extend to keep it unique — full 40-char SHAs from upstream callers are
+    // also fine.
     assert!(
-        v == "unknown" || (v.len() == 40 && v.chars().all(|c| c.is_ascii_hexdigit())),
+        v == "unknown" || (v.len() >= 7 && v.chars().all(|c| c.is_ascii_hexdigit())),
         "unexpected x-app-version: {v:?}"
     );
 }

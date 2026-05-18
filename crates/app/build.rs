@@ -14,7 +14,7 @@ fn main() {
         .filter(|s| !s.is_empty())
         .or_else(|| {
             Command::new("git")
-                .args(["rev-parse", "HEAD"])
+                .args(["rev-parse", "--short", "HEAD"])
                 .output()
                 .ok()
                 .filter(|o| o.status.success())
