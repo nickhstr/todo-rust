@@ -19,12 +19,10 @@ export const options = {
       duration: '30s',
     },
   },
-  thresholds: Object.assign(
-    {
-      'http_req_duration{endpoint:healthz}': ['p(95)<20'],
-    },
-    SHARED_THRESHOLDS,
-  ),
+  thresholds: {
+    ...SHARED_THRESHOLDS,
+    'http_req_duration{endpoint:healthz}': ['p(95)<20'],
+  },
 };
 
 export default function () {

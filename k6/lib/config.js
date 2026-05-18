@@ -31,7 +31,7 @@ export function makeSummaryWriter(scenario) {
     return {
       stdout: textSummary(data, { indent: ' ', enableColors: true }),
       [`/results/summary-${scenario}-${ts}-${gitSha}.json`]:
-        JSON.stringify(Object.assign({ meta: meta }, data), null, 2),
+        JSON.stringify({ meta, ...data }, null, 2),
     };
   };
 }

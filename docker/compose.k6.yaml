@@ -20,7 +20,7 @@ services:
       - '--web.enable-remote-write-receiver'
 
   k6:
-    image: grafana/k6:0.50.0
+    image: grafana/k6:0.53.0
     profiles: ["k6"]   # not started by `docker compose up`; only on `run --rm k6`
     networks:
       - default

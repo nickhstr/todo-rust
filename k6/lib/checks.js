@@ -23,10 +23,8 @@ export const Endpoint = {
 //
 //   http.get(url, params(Endpoint.Index, { redirects: 0 }))
 //
-export function params(endpoint, extra) {
-  if (extra === undefined) { extra = {}; }
-  var tags = Object.assign({ endpoint: endpoint }, extra.tags || {});
-  return Object.assign({}, extra, { tags: tags });
+export function params(endpoint, extra = {}) {
+  return { ...extra, tags: { endpoint, ...(extra.tags || {}) } };
 }
 
 export function assertStatus(res, expected, label) {
