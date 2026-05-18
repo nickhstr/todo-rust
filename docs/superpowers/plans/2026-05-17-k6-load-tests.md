@@ -1200,6 +1200,8 @@ The exact k6 metric names depend on k6's prometheus-rw output and vary across ve
 
 The labels (`scenario`, `git_sha`, `endpoint`, `method`, `status`, `url`) propagate to every series, so dashboard templating works as designed.
 
+**Trend units are seconds.** k6's prometheus-rw output emits duration values in seconds, not milliseconds — even though the CLI summary formats them as ms. So the latency panels must use `"unit": "s"` (Grafana auto-formats: `0.036` displays as `36 ms`). Using `"unit": "ms"` would label a seconds value as ms, showing 0.036 ms when the truth is 36 ms.
+
 - [ ] **Step 1: Write the dashboard JSON**
 
 ```json
@@ -1249,19 +1251,19 @@ The labels (`scenario`, `git_sha`, `endpoint`, `method`, `status`, `url`) propag
       "title": "HTTP latency (p50/p95/p99)",
       "type": "timeseries",
       "gridPos": { "x": 12, "y": 0, "w": 12, "h": 8 },
-      "fieldConfig": { "defaults": { "unit": "ms" } },
+      "fieldConfig": { "defaults": { "unit": "s" } },
       "targets": [
         {
           "expr": "k6_http_req_duration_p50{scenario=~\"$scenario\", git_sha=~\"$git_sha\"}",
-          "legendFormat": "p50"
+          "legendFormat": "{{endpoint}} p50"
         },
         {
           "expr": "k6_http_req_duration_p95{scenario=~\"$scenario\", git_sha=~\"$git_sha\"}",
-          "legendFormat": "p95"
+          "legendFormat": "{{endpoint}} p95"
         },
         {
           "expr": "k6_http_req_duration_p99{scenario=~\"$scenario\", git_sha=~\"$git_sha\"}",
-          "legendFormat": "p99"
+          "legendFormat": "{{endpoint}} p99"
         }
       ]
     },
@@ -1283,7 +1285,7 @@ The labels (`scenario`, `git_sha`, `endpoint`, `method`, `status`, `url`) propag
       "title": "Per-endpoint p95 latency",
       "type": "timeseries",
       "gridPos": { "x": 12, "y": 8, "w": 12, "h": 8 },
-      "fieldConfig": { "defaults": { "unit": "ms" } },
+      "fieldConfig": { "defaults": { "unit": "s" } },
       "targets": [
         {
           "expr": "k6_http_req_duration_p95{scenario=~\"$scenario\", git_sha=~\"$git_sha\"}",
