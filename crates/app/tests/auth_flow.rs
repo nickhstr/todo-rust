@@ -105,3 +105,26 @@ async fn unauthenticated_index_redirects_to_login() {
     let loc = res.headers().get("location").unwrap().to_str().unwrap();
     assert_eq!(loc, "/login");
 }
+
+#[tokio::test]
+async fn responses_carry_x_app_version() {
+    let app = spawn().await;
+    let res = app
+        .client
+        .get(format!("{}/healthz", app.base_url))
+        .send()
+        .await
+        .unwrap();
+    let v = res
+        .headers()
+        .get("x-app-version")
+        .expect("x-app-version present")
+        .to_str()
+        .unwrap();
+    assert!(!v.is_empty());
+    // Build-time SHA: either "unknown" (no git, no $GIT_SHA) or a 40-char hex.
+    assert!(
+        v == "unknown" || (v.len() == 40 && v.chars().all(|c| c.is_ascii_hexdigit())),
+        "unexpected x-app-version: {v:?}"
+    );
+}

@@ -109,6 +109,7 @@ To bump a version: download the new file into `static/vendor/`, regenerate the `
 - **The `MIGRATOR` macro path is relative to the crate** (`../../migrations`). If you move the migrations folder, update `crates/storage/src/lib.rs`.
 - **`SQLX_OFFLINE=true` is set in the Dockerfile** as a safety net. We use `sqlx::query_as` not `sqlx::query!`, so it isn't strictly required, but if anyone adds a query macro later they'll need `cargo sqlx prepare --workspace` to generate `.sqlx/`.
 - **rate_limit_middleware needs `ConnectInfo`** — `main.rs` and `tests/common/mod.rs` both use `app.into_make_service_with_connect_info::<SocketAddr>()`. If you ever swap `axum::serve(listener, app)` back to the plain form, the rate limit becomes effectively global.
+- **`X-App-Version` SHA is baked at compile time** by `crates/app/build.rs`. It reads `$GIT_SHA` first, then falls back to `git rev-parse HEAD`, then to `"unknown"`. `.git/` is in `.dockerignore`, so the production Dockerfile shells the SHA in via `ARG GIT_SHA` — the compose files thread `${GIT_SHA:-unknown}` through and the `just up*` recipes set it from `git rev-parse HEAD` on the host. A bare `docker build .` (no build-arg) will stamp `"unknown"`.
 
 ## What was verified end-to-end with Docker
 

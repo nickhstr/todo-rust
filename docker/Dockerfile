@@ -20,9 +20,13 @@ COPY --from=planner /app/recipe.json recipe.json
 RUN cargo chef cook --release --recipe-path recipe.json
 
 COPY . .
+# Stamped into the binary as `X-App-Version`. `.git/` is excluded by
+# `.dockerignore`, so the build script can't shell out — pass it in via
+# `docker build --build-arg GIT_SHA=$(git rev-parse HEAD)` (or compose).
+ARG GIT_SHA=unknown
 # We use `query_as` not `query!`, so SQLX_OFFLINE isn't strictly required, but
 # we set it for safety in case anyone adds a macro later.
-ENV SQLX_OFFLINE=true
+ENV SQLX_OFFLINE=true GIT_SHA=$GIT_SHA
 RUN cargo build --release --bin todo-app
 
 # -----------------------------------------------------------------------------

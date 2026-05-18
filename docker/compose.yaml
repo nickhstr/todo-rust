@@ -5,6 +5,8 @@ services:
     build:
       context: ..
       dockerfile: docker/Dockerfile
+      args:
+        GIT_SHA: ${GIT_SHA:-unknown}
     environment:
       RUST_LOG: info,todo_app=debug,sqlx=warn,tower_http=debug
       DATABASE_URL: postgres://todo:todo@db:5432/todo

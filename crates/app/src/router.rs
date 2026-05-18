@@ -20,8 +20,8 @@ use tower_sessions_sqlx_store::PostgresStore;
 use crate::{
     auth::AuthBackend,
     middleware::{
-        apply_security_headers, http_metrics_layer, make_request_id_layers, rate_limit_middleware,
-        RateLimiter,
+        apply_security_headers, apply_version_header, http_metrics_layer, make_request_id_layers,
+        rate_limit_middleware, RateLimiter,
     },
     routes::{auth as auth_routes, health as health_routes, pages, todos as todo_routes},
     AppState,
@@ -97,5 +97,5 @@ pub fn build_router(
         .layer(set_id)
         .layer(propagate_id);
 
-    apply_security_headers(merged, cookie_secure)
+    apply_version_header(apply_security_headers(merged, cookie_secure))
 }

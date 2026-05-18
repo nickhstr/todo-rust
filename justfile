@@ -55,14 +55,14 @@ prepare:
 
 # Default `up` brings up the dev override (cargo-watch + tailwind polling).
 up:
-    docker compose -f docker/compose.yaml -f docker/compose.dev.yaml up --build
+    GIT_SHA=$(git rev-parse HEAD 2>/dev/null || echo unknown) docker compose -f docker/compose.yaml -f docker/compose.dev.yaml up --build
 
 up-prod:
-    docker compose -f docker/compose.yaml up --build
+    GIT_SHA=$(git rev-parse HEAD 2>/dev/null || echo unknown) docker compose -f docker/compose.yaml up --build
 
 # Background mode; returns control to the shell instead of streaming logs.
 up-d:
-    docker compose -f docker/compose.yaml -f docker/compose.dev.yaml up -d --build
+    GIT_SHA=$(git rev-parse HEAD 2>/dev/null || echo unknown) docker compose -f docker/compose.yaml -f docker/compose.dev.yaml up -d --build
 
 down:
     docker compose -f docker/compose.yaml -f docker/compose.dev.yaml down
