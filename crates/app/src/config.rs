@@ -15,6 +15,8 @@ pub struct Config {
     pub static_dir: PathBuf,
     #[serde(default = "default_template_autoreload")]
     pub template_autoreload: bool,
+    #[serde(default)]
+    pub rate_limit: RateLimitConfig,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -67,6 +69,22 @@ impl AuthConfig {
     }
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RateLimitConfig {
+    #[serde(default = "default_rate_limit_enabled")]
+    pub enabled: bool,
+}
+
+impl Default for RateLimitConfig {
+    fn default() -> Self {
+        Self { enabled: true }
+    }
+}
+
+fn default_rate_limit_enabled() -> bool {
+    true
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -101,6 +119,24 @@ mod tests {
         let err = key_cfg("short").decoded_session_key().unwrap_err();
         assert!(matches!(err, ConfigError::SessionKeyTooShort(_)));
     }
+
+    #[test]
+    fn rate_limit_default_is_enabled() {
+        let cfg = Config::default();
+        assert!(cfg.rate_limit.enabled);
+    }
+
+    #[test]
+    fn rate_limit_config_serde_roundtrip() {
+        // The field comes through env as APP__RATE_LIMIT__ENABLED, which the
+        // `config` crate maps to `{rate_limit: {enabled: ...}}`. We exercise the
+        // serde shape here so future renames break loudly.
+        let disabled: RateLimitConfig =
+            serde_json::from_str(r#"{"enabled": false}"#).unwrap();
+        assert!(!disabled.enabled);
+        let defaulted: RateLimitConfig = serde_json::from_str("{}").unwrap();
+        assert!(defaulted.enabled);
+    }
 }
 
 fn default_template_autoreload() -> bool {
@@ -132,6 +168,7 @@ impl Default for Config {
             templates_dir: PathBuf::from("templates"),
             static_dir: PathBuf::from("static"),
             template_autoreload: false,
+            rate_limit: RateLimitConfig::default(),
         }
     }
 }
@@ -210,7 +247,8 @@ impl Config {
                 "static_dir",
                 defaults.static_dir.to_string_lossy().to_string(),
             )?
-            .set_default("template_autoreload", defaults.template_autoreload)?;
+            .set_default("template_autoreload", defaults.template_autoreload)?
+            .set_default("rate_limit.enabled", true)?;
 
         // 12-factor shortcuts
         if let Ok(url) = std::env::var("DATABASE_URL") {
