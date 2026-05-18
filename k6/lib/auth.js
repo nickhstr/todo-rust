@@ -23,11 +23,15 @@ export function signup(email, password) {
 }
 
 // POST /login. Returns the response. Throws on anything other than 303.
-export function login(email, password) {
+// Pass a `jar` (http.CookieJar instance) to persist the session cookie
+// across k6 iterations — the default per-VU cookie jar is cleared between
+// iterations, so long-lived VU sessions need an explicit persistent jar.
+export function login(email, password, jar = null) {
+  const extra = jar ? { redirects: 0, jar } : { redirects: 0 };
   const res = http.post(
     `${BASE_URL}/login`,
     { email, password },
-    params(Endpoint.Login, { redirects: 0 }),
+    params(Endpoint.Login, extra),
   );
   if (res.status !== 303) {
     throw new Error(
