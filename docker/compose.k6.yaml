@@ -25,6 +25,8 @@ services:
     networks:
       - default
     environment:
+      # Prometheus remote-write endpoint (docker-network hostname).
+      K6_PROMETHEUS_RW_SERVER_URL: "http://prometheus:9090/api/v1/write"
       # Emit trend metrics as gauges with these stats. Without this,
       # Grafana panels can't easily compute percentiles via
       # histogram_quantile() on remote-write data.
