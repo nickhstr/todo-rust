@@ -131,8 +131,7 @@ mod tests {
         // The field comes through env as APP__RATE_LIMIT__ENABLED, which the
         // `config` crate maps to `{rate_limit: {enabled: ...}}`. We exercise the
         // serde shape here so future renames break loudly.
-        let disabled: RateLimitConfig =
-            serde_json::from_str(r#"{"enabled": false}"#).unwrap();
+        let disabled: RateLimitConfig = serde_json::from_str(r#"{"enabled": false}"#).unwrap();
         assert!(!disabled.enabled);
         let defaulted: RateLimitConfig = serde_json::from_str("{}").unwrap();
         assert!(defaulted.enabled);

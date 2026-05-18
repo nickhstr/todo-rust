@@ -120,7 +120,7 @@
     },
     {
       "datasource": { "type": "prometheus", "uid": "prometheus" },
-      "fieldConfig": { "defaults": {}, "overrides": [] },
+      "fieldConfig": { "defaults": { "unit": "percentunit" }, "overrides": [] },
       "gridPos": { "h": 8, "w": 12, "x": 12, "y": 16 },
       "id": 6,
       "options": {
@@ -135,7 +135,7 @@
           "refId": "A"
         }
       ],
-      "title": "Checks per second",
+      "title": "Checks pass rate",
       "type": "timeseries"
     }
   ],

@@ -202,10 +202,7 @@ mod tests {
         let limiter = RateLimiter::new(0.0, 1.0).enabled(false);
         let app = Router::new()
             .route("/x", get(|| async { "ok" }))
-            .route_layer(from_fn_with_state(
-                limiter,
-                super::rate_limit_middleware,
-            ));
+            .route_layer(from_fn_with_state(limiter, super::rate_limit_middleware));
 
         for _ in 0..5 {
             let req = Request::builder().uri("/x").body(Body::empty()).unwrap();
@@ -229,10 +226,7 @@ mod tests {
         let limiter = RateLimiter::new(0.0, 1.0);
         let app = Router::new()
             .route("/x", get(|| async { "ok" }))
-            .route_layer(from_fn_with_state(
-                limiter,
-                super::rate_limit_middleware,
-            ));
+            .route_layer(from_fn_with_state(limiter, super::rate_limit_middleware));
 
         let req = Request::builder().uri("/x").body(Body::empty()).unwrap();
         let resp = app.clone().oneshot(req).await.unwrap();
