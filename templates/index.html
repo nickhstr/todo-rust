@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+
+{% block title %}The Day's Entries — Quiet Ledger{% endblock %}
+
+{% block content %}
+<section class="measure"
+         x-data="{ filter: 'all' }">
+
+  {# ---------- Page heading ---------- #}
+  <div class="anim-fade-up" style="animation-delay: 40ms;">
+    <p class="eyebrow">An entry for {{ "the day" }}</p>
+    <h1 class="mt-3 text-[2.5rem] sm:text-[3rem] leading-[1.05]" style="font-weight: 400;">
+      The day,<br>
+      <em class="not-italic" style="color: var(--color-vermillion); font-weight: 500;">
+        in intentions.
+      </em>
+    </h1>
+    <p class="mt-5 max-w-[36rem]" style="color: var(--color-ink-soft);">
+      A quiet place to set down what wants doing &mdash; one line at a time, no
+      ceremony, no notifications.
+    </p>
+  </div>
+
+  {# ---------- Create form ---------- #}
+  <form class="mt-12 anim-fade-up" style="animation-delay: 140ms;"
+        hx-post="/todos"
+        hx-target="#todo-list"
+        hx-swap="afterbegin"
+        hx-on::after-request="if(event.detail.successful){ this.reset(); this.querySelector('input[name=title]').focus(); }">
+    <label for="new-todo" class="field-label">New entry</label>
+    <div class="flex items-end gap-3">
+      <input
+        id="new-todo"
+        name="title"
+        type="text"
+        required
+        minlength="1"
+        maxlength="280"
+        autocomplete="off"
+        spellcheck="true"
+        placeholder="Write the next thing&hellip;"
+        class="field flex-1">
+      <button type="submit" class="btn btn-primary shrink-0" aria-label="Add entry">
+        Inscribe
+      </button>
+    </div>
+    <p class="mt-2 flex items-center justify-between">
+      <span class="eyebrow">Press &uarr; to recall · Enter to commit</span>
+      <span class="submit-spinner" aria-live="polite">Inscribing&hellip;</span>
+    </p>
+  </form>
+
+  {# ---------- Filter tabs ---------- #}
+  <div class="mt-14 anim-fade-up" style="animation-delay: 220ms;">
+    <div class="flex items-center justify-between gap-4 mb-3">
+      <p class="eyebrow">The ledger</p>
+      <div role="tablist" aria-label="Filter entries" class="flex items-center gap-6">
+        <button type="button" role="tab" class="tab"
+                :aria-pressed="filter === 'all'"
+                @click="filter = 'all'"
+                aria-pressed="true">All</button>
+        <button type="button" role="tab" class="tab"
+                :aria-pressed="filter === 'active'"
+                @click="filter = 'active'"
+                aria-pressed="false">Open</button>
+        <button type="button" role="tab" class="tab"
+                :aria-pressed="filter === 'done'"
+                @click="filter = 'done'"
+                aria-pressed="false">Done</button>
+      </div>
+    </div>
+    <hr class="rule-double">
+  </div>
+
+  {# ---------- List ---------- #}
+  <div class="anim-fade-up" style="animation-delay: 300ms;"
+       :class="{
+         'filter-all':    filter === 'all',
+         'filter-active': filter === 'active',
+         'filter-done':   filter === 'done'
+       }">
+    {% include "partials/todo_list.html" %}
+
+    {# Sibling of #todo-list (not inside it) so htmx swaps into the <ul> don't
+       touch this node. Visibility is CSS-only via :has() on #todo-list. #}
+    <p class="empty-state" data-when="all">
+      The page is blank.<br>Begin with one small intention.
+    </p>
+  </div>
+
+</section>
+{% endblock %}

@@ -1,0 +1,10 @@
+{# The ledger. Renders as <ul> so single-row partials can be prepended via
+   hx-swap="afterbegin" without wrapping issues. The empty-state message lives
+   outside this partial (see index.html) and is shown/hidden via CSS based on
+   whether the <ul> has any todo rows. That way htmx adding the first row
+   instantly hides the empty state without a server round trip. #}
+<ul id="todo-list" class="list-none p-0 m-0">
+  {% for todo in todos %}
+    {% include "partials/todo.html" %}
+  {% endfor %}
+</ul>

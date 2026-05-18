@@ -1,0 +1,6 @@
+[toolchain]
+# Plan said "1.82+"; pin to the installed stable so no rustup download is needed.
+# Bump as needed.
+channel    = "1.94"
+components = ["rustfmt", "clippy", "rust-analyzer"]
+profile    = "minimal"

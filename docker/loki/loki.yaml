@@ -1,0 +1,39 @@
+# Single-node Loki v3 config. Filesystem storage, no auth, retention by chunk
+# age, OTLP receiver enabled so the otel-collector can push log records
+# without using promtail.
+
+auth_enabled: false
+
+server:
+  http_listen_port: 3100
+  grpc_listen_port: 9096
+
+common:
+  instance_addr: 127.0.0.1
+  path_prefix: /loki
+  storage:
+    filesystem:
+      chunks_directory: /loki/chunks
+      rules_directory: /loki/rules
+  replication_factor: 1
+  ring:
+    kvstore:
+      store: inmemory
+
+schema_config:
+  configs:
+    - from: 2025-01-01
+      store: tsdb
+      object_store: filesystem
+      schema: v13
+      index:
+        prefix: index_
+        period: 24h
+
+limits_config:
+  metric_aggregation_enabled: true
+  allow_structured_metadata: true
+  volume_enabled: true
+  # The OTel collector's loki exporter / Loki's OTLP endpoint embed
+  # `trace_id`/`span_id` as structured metadata; we want them indexed.
+  retention_period: 168h

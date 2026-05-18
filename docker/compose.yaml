@@ -1,0 +1,114 @@
+name: todo-app
+
+services:
+  app:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    environment:
+      RUST_LOG: info,todo_app=debug,sqlx=warn,tower_http=debug
+      DATABASE_URL: postgres://todo:todo@db:5432/todo
+      REDIS_URL: redis://cache:6379
+      APP__OBSERVABILITY__OTEL_ENDPOINT: http://otel-collector:4317
+      APP__OBSERVABILITY__OTEL_ENABLED: "true"
+      APP__OBSERVABILITY__LOG_FORMAT: json
+      APP__AUTH__SESSION_KEY: ${SESSION_KEY:?set SESSION_KEY in .env or environment}
+      APP__AUTH__COOKIE_SECURE: "false"
+    ports:
+      - "3000:3000"
+    depends_on:
+      db:              { condition: service_healthy }
+      cache:           { condition: service_healthy }
+      otel-collector:  { condition: service_started }
+    restart: unless-stopped
+
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: todo
+      POSTGRES_PASSWORD: todo
+      POSTGRES_DB: todo
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U todo -d todo"]
+      interval: 2s
+      timeout: 3s
+      retries: 20
+    ports: ["5432:5432"]
+
+  cache:
+    image: valkey/valkey:7-alpine
+    command: ["valkey-server", "--appendonly", "yes"]
+    volumes:
+      - valkeydata:/data
+    healthcheck:
+      test: ["CMD", "valkey-cli", "ping"]
+      interval: 2s
+      timeout: 2s
+      retries: 20
+    ports: ["6379:6379"]
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:latest
+    command: ["--config=/etc/otel/config.yaml"]
+    volumes:
+      - ./otel/config.yaml:/etc/otel/config.yaml:ro
+    ports:
+      - "4317:4317"
+      - "4318:4318"
+    depends_on:
+      - tempo
+      - loki
+
+  loki:
+    image: grafana/loki:latest
+    command: ["-config.file=/etc/loki/loki.yaml"]
+    user: "0"
+    volumes:
+      - ./loki/loki.yaml:/etc/loki/loki.yaml:ro
+      - lokidata:/loki
+    ports:
+      - "3100:3100"
+
+  tempo:
+    image: grafana/tempo:latest
+    command: ["-config.file=/etc/tempo.yaml"]
+    user: "0"  # tempo writes to /var/tempo; default uid lacks perms on fresh volume
+    volumes:
+      - ./tempo/tempo.yaml:/etc/tempo.yaml:ro
+      - tempodata:/var/tempo
+    ports:
+      - "3200:3200"
+
+  prometheus:
+    image: prom/prometheus:latest
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.retention.time=7d'
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - promdata:/prometheus
+    ports: ["9090:9090"]
+
+  grafana:
+    image: grafana/grafana:latest
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafanadata:/var/lib/grafana
+    ports: ["3001:3000"]
+    depends_on: [prometheus, tempo]
+
+volumes:
+  pgdata:
+  valkeydata:
+  tempodata:
+  promdata:
+  grafanadata:
+  lokidata:

@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+
+{% block title %}Begin — Quiet Ledger{% endblock %}
+
+{% block content %}
+<section class="measure pt-6">
+
+  <div class="anim-fade-up" style="animation-delay: 40ms;">
+    <p class="eyebrow">Begin</p>
+    <h1 class="mt-3 text-[2.25rem] sm:text-[2.75rem] leading-[1.05]" style="font-weight: 400;">
+      Open a fresh <em class="not-italic" style="color: var(--color-vermillion);">page.</em>
+    </h1>
+    <p class="mt-5 max-w-[34rem]" style="color: var(--color-ink-soft);">
+      No teams, no boards, no streaks. Just an address, a pass-phrase, and a
+      column wide enough for one thought at a time.
+    </p>
+  </div>
+
+  {% if error %}
+    <div class="notice mt-8 anim-fade-up" role="alert" style="animation-delay: 80ms;">
+      <span aria-hidden="true">&#10033;</span>
+      <span>{{ error }}</span>
+    </div>
+  {% endif %}
+
+  <form class="mt-10 space-y-7 anim-fade-up"
+        style="animation-delay: 140ms;"
+        method="post"
+        action="/signup"
+        hx-post="/signup"
+        hx-target="body"
+        hx-push-url="true">
+
+    <div>
+      <label for="email" class="field-label">Address</label>
+      <input id="email" name="email" type="email" required
+             autocomplete="email" inputmode="email"
+             placeholder="you@somewhere.quiet"
+             class="field">
+    </div>
+
+    <div>
+      <label for="password" class="field-label">Pass-phrase</label>
+      <input id="password" name="password" type="password" required
+             autocomplete="new-password" minlength="12"
+             placeholder="At least twelve characters"
+             aria-describedby="password-help"
+             class="field">
+      <p id="password-help" class="eyebrow mt-2" style="text-transform: none; letter-spacing: 0.08em; font-style: italic;">
+        Twelve characters or more. A line of verse works nicely.
+      </p>
+    </div>
+
+    <div class="pt-4 flex items-center justify-between gap-4">
+      <a href="/login" class="btn-link">Already have one?</a>
+      <button type="submit" class="btn btn-primary">Open the book</button>
+    </div>
+  </form>
+
+</section>
+{% endblock %}

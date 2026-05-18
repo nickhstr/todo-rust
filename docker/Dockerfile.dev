@@ -1,0 +1,26 @@
+# Dev image: keeps the full Rust toolchain + cargo-watch + systemfd in the
+# container so `cargo watch -x run` works against a bind-mounted source tree.
+# Not used in production — see Dockerfile for the slim runtime image.
+
+ARG RUST_VERSION=1.94
+FROM rust:${RUST_VERSION}-bookworm AS dev
+
+# Build tools sqlx + tracing-opentelemetry may need.
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends \
+    pkg-config libssl-dev curl ca-certificates \
+ && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Pre-warm dev tools. systemfd / cargo-watch take no features; sqlx-cli's
+# `--no-default-features --features ...` MUST be installed separately, otherwise
+# cargo applies those features to all three packages and fails.
+RUN cargo install --locked systemfd cargo-watch \
+ && cargo install --locked sqlx-cli --no-default-features --features rustls,postgres
+
+ENV CARGO_TARGET_DIR=/app/target
+
+EXPOSE 3000
+ENTRYPOINT ["sh", "-c", "$0 \"$@\""]
+CMD ["cargo", "run", "--bin", "todo-app"]

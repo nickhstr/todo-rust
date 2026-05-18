@@ -1,0 +1,53 @@
+apiVersion: 1
+
+datasources:
+  - name: Prometheus
+    type: prometheus
+    uid: prometheus
+    url: http://prometheus:9090
+    isDefault: true
+    editable: true
+
+  - name: Loki
+    type: loki
+    uid: loki
+    url: http://loki:3100
+    editable: true
+    jsonData:
+      # Treat the OTLP-ingested `trace_id` structured metadata field as the
+      # derived field. Clicking it in a log row opens the trace in Tempo.
+      derivedFields:
+        - name: trace_id
+          # OTLP-ingested fields land in structured metadata; this regex
+          # matches both `trace_id="abc"` (Loki LogQL line format) and the
+          # JSON encoding from the fmt subscriber.
+          matcherType: label
+          matcherRegex: trace_id
+          url: '$${__value.raw}'
+          datasourceUid: tempo
+          urlDisplayLabel: View trace in Tempo
+
+  - name: Tempo
+    type: tempo
+    uid: tempo
+    url: http://tempo:3200
+    editable: true
+    jsonData:
+      httpMethod: GET
+      tracesToMetrics:
+        datasourceUid: prometheus
+        spanStartTimeShift: '-1h'
+        spanEndTimeShift: '1h'
+      tracesToLogsV2:
+        datasourceUid: loki
+        spanStartTimeShift: '-5m'
+        spanEndTimeShift: '5m'
+        filterByTraceID: true
+        # Match the OTel resource attribute that identifies the app.
+        tags:
+          - key: service.name
+            value: service_name
+        customQuery: true
+        query: '{service_name="$${__span.tags["service.name"]}"} | trace_id="$${__span.traceId}"'
+      serviceMap:
+        datasourceUid: prometheus

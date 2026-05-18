@@ -1,0 +1,71 @@
+# Dev override: hot reload via cargo-watch + systemfd. Bind-mount the source
+# tree and run with the dev stage of the Dockerfile (which has the full toolchain).
+#
+# NOTE: This file overrides `app` to use `Dockerfile.dev`. Bring the stack up with:
+#   docker compose -f docker/compose.yaml -f docker/compose.dev.yaml up --build
+
+services:
+  app:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.dev
+    environment:
+      RUST_LOG: info,todo_app=debug,sqlx=warn,tower_http=debug
+      APP__OBSERVABILITY__LOG_FORMAT: pretty
+      APP__TEMPLATE_AUTORELOAD: "true"
+    volumes:
+      - ../crates:/app/crates
+      - ../templates:/app/templates
+      - ../static:/app/static
+      - ../migrations:/app/migrations
+      - ../Cargo.toml:/app/Cargo.toml
+      - ../Cargo.lock:/app/Cargo.lock:ro
+      - cargo-cache:/usr/local/cargo/registry
+      - target-cache:/app/target
+    command:
+      - sh
+      - -c
+      - |
+        # systemfd's "http::3000" form binds to 127.0.0.1; in a container we
+        # need to expose 0.0.0.0 so the published port forwards work.
+        # `cargo watch --poll` for the same reason tailwind needs polling:
+        # native FS events don't cross podman's macOS bind-mount.
+        systemfd --no-pid -s http::0.0.0.0:3000 -- cargo watch --poll -x 'run --bin todo-app'
+
+  tailwind:
+    image: node:24-bookworm-slim
+    working_dir: /app
+    volumes:
+      - ../package.json:/app/package.json:ro
+      - ../tailwind.config.js:/app/tailwind.config.js:ro
+      - ../templates:/app/templates:ro
+      - ../static:/app/static
+    # Tailwind v4's `--watch` uses @parcel/watcher (native FS events). Native
+    # FS events don't cross podman's macOS bind-mount, so the watcher never
+    # fires. We do our own mtime-polling loop in shell and call the one-shot
+    # CLI when something changes. Works on every container runtime.
+    command:
+      - sh
+      - -c
+      # `$$` so compose passes literal `$` to the shell instead of trying to
+      # interpolate `${LAST}` etc. as compose variables.
+      - |
+        set -eu
+        npm install --no-audit --no-fund
+        build() { node_modules/.bin/tailwindcss -i ./static/css/app.src.css -o ./static/css/app.css; }
+        build
+        echo "[tailwind] initial build done; polling for changes every 1s."
+        snapshot() { find ./static/css/app.src.css ./templates ./tailwind.config.js -type f -printf '%T@\n' 2>/dev/null | sort -n | tail -1; }
+        LAST=$$(snapshot)
+        while true; do
+          sleep 1
+          NOW=$$(snapshot)
+          if [ "$$NOW" != "$$LAST" ]; then
+            LAST=$$NOW
+            build || true
+          fi
+        done
+
+volumes:
+  cargo-cache:
+  target-cache:

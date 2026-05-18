@@ -1,0 +1,436 @@
+@import "tailwindcss";
+
+/* =============================================================
+   Editorial todo — design tokens (Tailwind v4 CSS-first config)
+   ============================================================= */
+
+@theme {
+  /* Palette: warm paper, deep ink, single vermillion accent. */
+  --color-paper:        #fbf7ee;
+  --color-paper-deep:   #f3ecdc;
+  --color-paper-fold:   #e8dfc7;
+  --color-ink:          #16151a;
+  --color-ink-soft:     #3a3833;
+  --color-ink-mute:     #807a6c;
+  --color-rule:         #cdc3a8;
+  --color-vermillion:   #e34a2c;
+  --color-vermillion-deep: #b8351c;
+
+  /* Type families — system stacks only. ui-serif / ui-monospace are the
+     CSS4 generic keywords that map to the OS's UI serif/mono (New York /
+     SF Mono on Apple, Cambria / Cascadia on Windows, etc.). */
+  --font-display: ui-serif, "New York", "Iowan Old Style", Charter, "Apple Garamond", Georgia, Cambria, serif;
+  --font-sans:    system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono:    ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+
+  /* Editorial measure — 640px column. */
+  --container-measure: 40rem;
+}
+
+/* =============================================================
+   Base layer
+   ============================================================= */
+
+@layer base {
+  :root {
+    color-scheme: light;
+    /* Subtle paper noise — generated SVG fractal noise, low opacity.
+       Used as a layered background-image on <body>. */
+    --paper-noise:
+      url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 240 240'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.92' numOctaves='2' stitchTiles='stitch' seed='7'/><feColorMatrix values='0 0 0 0 0.086  0 0 0 0 0.082  0 0 0 0 0.102  0 0 0 0.18 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)' opacity='0.55'/></svg>");
+  }
+
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    background-color: var(--color-paper);
+    background-image:
+      radial-gradient(1200px 600px at 12% -10%, rgba(227, 74, 44, 0.04), transparent 60%),
+      radial-gradient(900px 500px at 95% 110%, rgba(22, 21, 26, 0.05), transparent 60%),
+      var(--paper-noise);
+    background-attachment: fixed, fixed, fixed;
+    background-repeat: no-repeat, no-repeat, repeat;
+    background-size: auto, auto, 240px 240px;
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    font-feature-settings: "kern", "ss01";
+    font-size: 17px;
+    line-height: 1.6;
+    min-height: 100dvh;
+  }
+
+  ::selection {
+    background: var(--color-vermillion);
+    color: var(--color-paper);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-vermillion);
+    outline-offset: 3px;
+    border-radius: 1px;
+  }
+
+  /* Smooth, opinionated form reset on top of Tailwind preflight. */
+  input, button, textarea, select {
+    font: inherit;
+    color: inherit;
+  }
+
+  /* Display headings — system serif. font-optical-sizing kicks in on
+     ui-serif where the OS provides an optical-sized variant (e.g. New York). */
+  h1, h2, h3 {
+    font-family: var(--font-display);
+    font-optical-sizing: auto;
+    color: var(--color-ink);
+    letter-spacing: -0.02em;
+  }
+}
+
+/* =============================================================
+   Component utilities — editorial primitives
+   ============================================================= */
+
+@layer components {
+
+  /* Single-column measure used across all pages. */
+  .measure {
+    width: 100%;
+    max-width: var(--container-measure);
+    margin-inline: auto;
+    padding-inline: 1.5rem;
+  }
+
+  /* Eyebrow / slug line — JetBrains Mono small caps. */
+  .eyebrow {
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;       /* 11px */
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--color-ink-mute);
+    font-weight: 500;
+  }
+
+  /* Vermillion seal — the accent dot used in headers and logo. */
+  .seal {
+    display: inline-block;
+    width: 0.5rem;
+    height: 0.5rem;
+    background: var(--color-vermillion);
+    border-radius: 9999px;
+    box-shadow: 0 0 0 3px rgba(227, 74, 44, 0.12);
+    flex-shrink: 0;
+  }
+
+  /* Form field — borderless, single underline rule, generous padding. */
+  .field {
+    width: 100%;
+    background: transparent;
+    border: 0;
+    border-bottom: 1px solid var(--color-rule);
+    padding: 0.875rem 0.25rem;
+    font-family: var(--font-sans);
+    font-size: 1.0625rem;
+    color: var(--color-ink);
+    transition: border-color 180ms ease, background-color 180ms ease;
+    border-radius: 0;
+  }
+  .field::placeholder { color: var(--color-ink-mute); font-style: italic; }
+  .field:hover        { border-bottom-color: var(--color-ink-mute); }
+  .field:focus        { outline: none; border-bottom-color: var(--color-vermillion); }
+  .field:focus-visible { outline: none; }
+
+  .field-label {
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--color-ink-mute);
+    margin-bottom: 0.25rem;
+    display: block;
+  }
+
+  /* Buttons. */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    min-height: 44px;
+    padding: 0.625rem 1.25rem;
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    font-weight: 500;
+    border-radius: 1px;
+    transition: transform 120ms ease, background-color 180ms ease,
+                color 180ms ease, box-shadow 180ms ease;
+    cursor: pointer;
+    user-select: none;
+  }
+  .btn:active { transform: translateY(1px); }
+
+  .btn-primary {
+    background: var(--color-ink);
+    color: var(--color-paper);
+    border: 1px solid var(--color-ink);
+  }
+  .btn-primary:hover {
+    background: var(--color-vermillion);
+    border-color: var(--color-vermillion);
+  }
+
+  .btn-ghost {
+    background: transparent;
+    color: var(--color-ink);
+    border: 1px solid var(--color-rule);
+  }
+  .btn-ghost:hover {
+    border-color: var(--color-ink);
+  }
+
+  .btn-link {
+    background: transparent;
+    border: 0;
+    padding: 0;
+    min-height: 0;
+    color: var(--color-ink);
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    border-bottom: 1px solid var(--color-rule);
+    padding-bottom: 2px;
+    transition: color 180ms ease, border-color 180ms ease;
+  }
+  .btn-link:hover {
+    color: var(--color-vermillion);
+    border-bottom-color: var(--color-vermillion);
+  }
+
+  /* Filter tab — used by the Alpine filter buttons. */
+  .tab {
+    appearance: none;
+    background: transparent;
+    border: 0;
+    padding: 0.5rem 0;
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--color-ink-mute);
+    cursor: pointer;
+    position: relative;
+    transition: color 180ms ease;
+  }
+  .tab:hover { color: var(--color-ink); }
+  .tab[aria-pressed="true"] {
+    color: var(--color-ink);
+  }
+  .tab[aria-pressed="true"]::after {
+    content: "";
+    position: absolute;
+    left: 0; right: 0; bottom: -1px;
+    height: 2px;
+    background: var(--color-vermillion);
+  }
+
+  /* Hairline rules — old-book pen rule. */
+  .rule {
+    height: 1px;
+    background: var(--color-rule);
+    border: 0;
+    width: 100%;
+  }
+  .rule-double {
+    height: 4px;
+    border-top: 1px solid var(--color-rule);
+    border-bottom: 1px solid var(--color-rule);
+    background: transparent;
+  }
+
+  /* Todo row. */
+  .todo-row {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: baseline;
+    gap: 1rem;
+    padding: 1.125rem 0;
+    border-bottom: 1px solid var(--color-rule);
+    position: relative;
+    transition: opacity 200ms ease, transform 200ms ease;
+  }
+  /* htmx swap-out transition for delete: row fades + collapses. */
+  .todo-row.htmx-swapping {
+    opacity: 0;
+    transform: translateX(8px);
+  }
+
+  .todo-index {
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
+    color: var(--color-ink-mute);
+    letter-spacing: 0.1em;
+    padding-top: 0.25rem;
+    min-width: 2ch;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .todo-title {
+    font-family: var(--font-display);
+    font-weight: 400;
+    font-size: 1.25rem;
+    line-height: 1.4;
+    color: var(--color-ink);
+    transition: color 200ms ease, text-decoration-color 200ms ease;
+    word-break: break-word;
+  }
+
+  .todo-meta {
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
+    color: var(--color-ink-mute);
+    letter-spacing: 0.08em;
+    margin-top: 0.125rem;
+    display: block;
+  }
+
+  .todo-row[data-completed="true"] .todo-title {
+    color: var(--color-ink-mute);
+    text-decoration: line-through;
+    text-decoration-thickness: 1px;
+    text-decoration-color: var(--color-vermillion);
+  }
+
+  /* Toggle (left of title): a small square checkbox-as-button. */
+  .toggle-box {
+    appearance: none;
+    background: transparent;
+    border: 1px solid var(--color-ink);
+    border-radius: 1px;
+    width: 22px;
+    height: 22px;
+    min-width: 22px;
+    cursor: pointer;
+    position: relative;
+    transition: background-color 160ms ease, border-color 160ms ease;
+    margin-top: 0.35rem;
+  }
+  .toggle-box::after {
+    content: "";
+    position: absolute;
+    inset: 3px;
+    background: transparent;
+    transition: background-color 160ms ease;
+    border-radius: 0;
+  }
+  .todo-row[data-completed="true"] .toggle-box {
+    border-color: var(--color-vermillion);
+  }
+  .todo-row[data-completed="true"] .toggle-box::after {
+    background: var(--color-vermillion);
+  }
+  .toggle-box:hover { border-color: var(--color-vermillion); }
+
+  /* Wraps toggle + title block so we can hit-target generously. */
+  .toggle-form, .delete-form { display: contents; }
+
+  .row-action {
+    appearance: none;
+    background: transparent;
+    border: 0;
+    cursor: pointer;
+    width: 44px;
+    height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--color-ink-mute);
+    border-radius: 1px;
+    transition: color 160ms ease, background-color 160ms ease;
+  }
+  .row-action:hover {
+    color: var(--color-vermillion);
+    background: rgba(227, 74, 44, 0.06);
+  }
+
+  /* Empty state. */
+  .empty-state {
+    padding: 4rem 0;
+    text-align: center;
+    color: var(--color-ink-mute);
+    font-family: var(--font-display);
+    font-style: italic;
+    font-size: 1.125rem;
+  }
+
+  /* Banner / error. */
+  .notice {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.625rem;
+    padding: 0.75rem 0.875rem;
+    background: rgba(227, 74, 44, 0.07);
+    border-left: 2px solid var(--color-vermillion);
+    color: var(--color-vermillion-deep);
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    letter-spacing: 0.04em;
+    line-height: 1.5;
+    border-radius: 1px;
+  }
+
+  /* htmx loading affordance on the create form. */
+  .htmx-request .submit-spinner { opacity: 1; }
+  .submit-spinner {
+    opacity: 0;
+    transition: opacity 160ms ease;
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
+    letter-spacing: 0.22em;
+    color: var(--color-ink-mute);
+    text-transform: uppercase;
+  }
+
+  /* Filter visibility — driven by the wrapper class set by Alpine on the
+     list section. */
+  .filter-active .todo-row[data-completed="true"]  { display: none; }
+  .filter-done   .todo-row[data-completed="false"] { display: none; }
+
+  /* The empty state only makes sense on the unfiltered "all" view; under
+     active/done filters with no matching rows, simply show nothing. */
+  .filter-active .empty-state[data-when="all"],
+  .filter-done   .empty-state[data-when="all"] { display: none; }
+
+  /* Hide the "all" empty state as soon as the list has at least one todo row.
+     Driven by CSS so htmx's afterbegin swap makes it disappear without any
+     server round trip or JS coordination. */
+  #todo-list:has(> li[id^="todo-"]) ~ .empty-state[data-when="all"] {
+    display: none;
+  }
+}
+
+/* =============================================================
+   Animations
+   ============================================================= */
+
+@layer utilities {
+  @keyframes ed-fade-up {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .anim-fade-up {
+    animation: ed-fade-up 320ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  }
+
+  /* Newly inserted htmx rows: slide in from the top. */
+  .htmx-added.todo-row,
+  .todo-row.htmx-added {
+    animation: ed-fade-up 320ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  }
+}

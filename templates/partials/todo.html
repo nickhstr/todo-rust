@@ -1,0 +1,50 @@
+{# One ledger entry. Renders as a single <li> so it slots into <ul id="todo-list">. #}
+<li id="todo-{{ todo.id }}"
+    class="todo-row"
+    data-completed="{{ 'true' if todo.completed else 'false' }}">
+
+  {# ---- Toggle ---- #}
+  <form action="/todos/{{ todo.id }}/toggle" method="post" class="contents">
+    <button type="submit"
+            class="toggle-box"
+            hx-post="/todos/{{ todo.id }}/toggle"
+            hx-target="closest li"
+            hx-swap="outerHTML"
+            aria-label="{{ 'Mark as open' if todo.completed else 'Mark as done' }}"
+            aria-pressed="{{ 'true' if todo.completed else 'false' }}">
+    </button>
+  </form>
+
+  {# ---- Title + meta ---- #}
+  <div class="min-w-0">
+    <p class="todo-title">{{ todo.title }}</p>
+    <span class="todo-meta">
+      {%- if todo.completed -%}
+        Done &middot;
+        {%- if todo.updated_at %} {{ todo.updated_at }}{% endif -%}
+      {%- else -%}
+        Entered &middot;
+        {%- if todo.created_at %} {{ todo.created_at }}{% endif -%}
+      {%- endif -%}
+    </span>
+  </div>
+
+  {# ---- Delete (htmx-only; no SSR fallback for DELETE verb) ---- #}
+  <div class="contents">
+    <button type="button"
+            class="row-action"
+            hx-delete="/todos/{{ todo.id }}"
+            hx-target="closest li"
+            hx-swap="outerHTML swap:200ms"
+            hx-confirm="Strike this entry from the ledger?"
+            aria-label="Delete entry">
+      {# Hairline X — drawn, not iconographic. #}
+      <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true" focusable="false">
+        <path d="M1.5 1.5 L12.5 12.5 M12.5 1.5 L1.5 12.5"
+              stroke="currentColor" stroke-width="1.25"
+              stroke-linecap="round" fill="none"/>
+      </svg>
+    </button>
+  </div>
+
+</li>

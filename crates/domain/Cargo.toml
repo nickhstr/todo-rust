@@ -1,0 +1,16 @@
+[package]
+name         = "todo-domain"
+version      = "0.1.0"
+edition      = { workspace = true }
+rust-version = { workspace = true }
+license      = { workspace = true }
+publish      = { workspace = true }
+
+[lints]
+
+[dependencies]
+serde     = { workspace = true }
+thiserror = { workspace = true }
+time      = { workspace = true }
+uuid      = { workspace = true }
+validator = { workspace = true }
