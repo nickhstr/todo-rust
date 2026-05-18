@@ -893,6 +893,11 @@ This is the scenario that maps to the plan's perf target (1000 RPS on `GET /` wi
 //
 // setup() bulk-seeds users + todos via the API (idempotent).
 // Each VU is assigned one seed user, logs in on iteration 0, then loops.
+//
+// Note on cookies: k6 resets the default per-VU cookie jar at the end of
+// every iteration. To keep the session across iterations we instantiate
+// a long-lived `http.CookieJar()` at module scope (init context, once
+// per VU) and pass it as `{ jar }` on every request.
 
 import http from 'k6/http';
 import { sleep } from 'k6';
@@ -903,6 +908,10 @@ import { login } from '../lib/auth.js';
 
 const USERS = parseInt(__ENV.USERS || '50', 10);
 const TODOS_PER_USER = parseInt(__ENV.TODOS_PER_USER || '10', 10);
+
+// Per-VU module-scope jar. Survives the per-iteration VU reset that
+// would otherwise clear the default jar.
+const jar = new http.CookieJar();
 
 export const options = {
   scenarios: {
@@ -932,29 +941,32 @@ export function setup() {
 }
 
 export default function (data) {
-  // On the first iteration each VU logs in as its assigned user. The
-  // cookie jar persists across iterations within a VU.
+  // On the first iteration each VU logs in as its assigned user, pumping
+  // the session cookie into the module-scope jar. Subsequent iterations
+  // reuse it.
   if (__ITER === 0) {
     const user = data.users[(__VU - 1) % data.users.length];
-    login(user.email, user.password);
+    login(user.email, user.password, jar);
   }
 
   const roll = Math.random();
   let r;
   if (roll < 0.9) {
-    r = http.get(`${BASE_URL}/`, params(Endpoint.Index, { redirects: 0 }));
+    r = http.get(`${BASE_URL}/`, params(Endpoint.Index, { redirects: 0, jar }));
     assertStatus(r, 200, 'GET /');
   } else if (roll < 0.95) {
-    r = http.get(`${BASE_URL}/login`, params(Endpoint.Login));
+    r = http.get(`${BASE_URL}/login`, params(Endpoint.Login, { jar }));
     assertStatus(r, 200, 'GET /login');
   } else {
-    r = http.get(`${BASE_URL}/healthz`, params(Endpoint.Healthz));
+    r = http.get(`${BASE_URL}/healthz`, params(Endpoint.Healthz, { jar }));
     assertStatus(r, 200, 'healthz');
   }
 }
 
 export const handleSummary = makeSummaryWriter('read_heavy');
 ```
+
+Note: `login()` in `k6/lib/auth.js` needs to accept an optional `jar` arg for this to work. Update the signature to `login(email, password, jar = null)` and, when `jar` is provided, pass it through to `http.post` along with `redirects: 0`. `signup()` does not need this change since seeding runs in `setup()` where the default jar is fine.
 
 - [ ] **Step 2: Run the read-heavy scenario**
 
@@ -983,7 +995,7 @@ Expected: `50` (or whatever USERS was set to).
 ```bash
 docker compose -f docker/compose.yaml -f docker/compose.k6.yaml exec db \
     psql -U todo -d todo -c \
-    "SELECT count(*) FROM todos t JOIN users u ON u.id = t.user_id WHERE u.email LIKE 'loadtest-%';"
+    "SELECT count(*) FROM todos t JOIN users u ON u.id = t.owner_id WHERE u.email LIKE 'loadtest-%';"
 ```
 
 Expected: `500` (USERS × TODOS_PER_USER).
