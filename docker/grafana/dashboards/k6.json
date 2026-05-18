@@ -38,20 +38,20 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "k6_http_req_duration_p50{scenario=~\"$scenario\", git_sha=~\"$git_sha\"}",
-          "legendFormat": "{{endpoint}} p50",
+          "expr": "max(k6_http_req_duration_p50{scenario=~\"$scenario\", git_sha=~\"$git_sha\"})",
+          "legendFormat": "p50 (worst endpoint)",
           "refId": "A"
         },
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "k6_http_req_duration_p95{scenario=~\"$scenario\", git_sha=~\"$git_sha\"}",
-          "legendFormat": "{{endpoint}} p95",
+          "expr": "max(k6_http_req_duration_p95{scenario=~\"$scenario\", git_sha=~\"$git_sha\"})",
+          "legendFormat": "p95 (worst endpoint)",
           "refId": "B"
         },
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "k6_http_req_duration_p99{scenario=~\"$scenario\", git_sha=~\"$git_sha\"}",
-          "legendFormat": "{{endpoint}} p99",
+          "expr": "max(k6_http_req_duration_p99{scenario=~\"$scenario\", git_sha=~\"$git_sha\"})",
+          "legendFormat": "p99 (worst endpoint)",
           "refId": "C"
         }
       ],
@@ -70,8 +70,8 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "k6_http_req_failed_rate{scenario=~\"$scenario\", git_sha=~\"$git_sha\"}",
-          "legendFormat": "failed rate",
+          "expr": "max(k6_http_req_failed_rate{scenario=~\"$scenario\", git_sha=~\"$git_sha\"})",
+          "legendFormat": "failed rate (worst endpoint)",
           "refId": "A"
         }
       ],
@@ -90,7 +90,7 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "k6_http_req_duration_p95{scenario=~\"$scenario\", git_sha=~\"$git_sha\"}",
+          "expr": "max by (endpoint) (k6_http_req_duration_p95{scenario=~\"$scenario\", git_sha=~\"$git_sha\"})",
           "legendFormat": "{{endpoint}}",
           "refId": "A"
         }
@@ -110,7 +110,7 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "k6_vus{scenario=~\"$scenario\", git_sha=~\"$git_sha\"}",
+          "expr": "max(k6_vus{scenario=~\"$scenario\", git_sha=~\"$git_sha\"})",
           "legendFormat": "vus",
           "refId": "A"
         }
@@ -130,8 +130,8 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "k6_checks_rate{scenario=~\"$scenario\", git_sha=~\"$git_sha\"}",
-          "legendFormat": "checks pass rate",
+          "expr": "min(k6_checks_rate{scenario=~\"$scenario\", git_sha=~\"$git_sha\"})",
+          "legendFormat": "checks pass rate (worst check)",
           "refId": "A"
         }
       ],

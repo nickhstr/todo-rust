@@ -1202,6 +1202,13 @@ The labels (`scenario`, `git_sha`, `endpoint`, `method`, `status`, `url`) propag
 
 **Trend units are seconds.** k6's prometheus-rw output emits duration values in seconds, not milliseconds — even though the CLI summary formats them as ms. So the latency panels must use `"unit": "s"` (Grafana auto-formats: `0.036` displays as `36 ms`). Using `"unit": "ms"` would label a seconds value as ms, showing 0.036 ms when the truth is 36 ms.
 
+**Aggregate to control series fan-out.** k6 attaches a rich label set to every series (`endpoint`, `method`, `status`, `url`, `name`, `expected_response`, `proto`). Each unique combination becomes its own Prometheus series — easily a hundred+ for a real run. Naked queries like `k6_http_req_failed_rate{...}` render the legend unreadable. Each panel must aggregate to its intent:
+
+- Overall latency panel → `max(k6_http_req_duration_pXX{...})` for one line per percentile.
+- Overall error rate / checks pass rate → `max(...)` / `min(...)` for one line.
+- Per-endpoint p95 → `max by (endpoint) (...)` for one line per endpoint.
+- VUs gauge → `max(k6_vus{...})` because k6 emits one VUs series per executor / stage.
+
 - [ ] **Step 1: Write the dashboard JSON**
 
 ```json
@@ -1254,16 +1261,16 @@ The labels (`scenario`, `git_sha`, `endpoint`, `method`, `status`, `url`) propag
       "fieldConfig": { "defaults": { "unit": "s" } },
       "targets": [
         {
-          "expr": "k6_http_req_duration_p50{scenario=~\"$scenario\", git_sha=~\"$git_sha\"}",
-          "legendFormat": "{{endpoint}} p50"
+          "expr": "max(k6_http_req_duration_p50{scenario=~\"$scenario\", git_sha=~\"$git_sha\"})",
+          "legendFormat": "p50 (worst endpoint)"
         },
         {
-          "expr": "k6_http_req_duration_p95{scenario=~\"$scenario\", git_sha=~\"$git_sha\"}",
-          "legendFormat": "{{endpoint}} p95"
+          "expr": "max(k6_http_req_duration_p95{scenario=~\"$scenario\", git_sha=~\"$git_sha\"})",
+          "legendFormat": "p95 (worst endpoint)"
         },
         {
-          "expr": "k6_http_req_duration_p99{scenario=~\"$scenario\", git_sha=~\"$git_sha\"}",
-          "legendFormat": "{{endpoint}} p99"
+          "expr": "max(k6_http_req_duration_p99{scenario=~\"$scenario\", git_sha=~\"$git_sha\"})",
+          "legendFormat": "p99 (worst endpoint)"
         }
       ]
     },
@@ -1275,8 +1282,8 @@ The labels (`scenario`, `git_sha`, `endpoint`, `method`, `status`, `url`) propag
       "fieldConfig": { "defaults": { "unit": "percentunit" } },
       "targets": [
         {
-          "expr": "k6_http_req_failed_rate{scenario=~\"$scenario\", git_sha=~\"$git_sha\"}",
-          "legendFormat": "failed rate"
+          "expr": "max(k6_http_req_failed_rate{scenario=~\"$scenario\", git_sha=~\"$git_sha\"})",
+          "legendFormat": "failed rate (worst endpoint)"
         }
       ]
     },
@@ -1288,7 +1295,7 @@ The labels (`scenario`, `git_sha`, `endpoint`, `method`, `status`, `url`) propag
       "fieldConfig": { "defaults": { "unit": "s" } },
       "targets": [
         {
-          "expr": "k6_http_req_duration_p95{scenario=~\"$scenario\", git_sha=~\"$git_sha\"}",
+          "expr": "max by (endpoint) (k6_http_req_duration_p95{scenario=~\"$scenario\", git_sha=~\"$git_sha\"})",
           "legendFormat": "{{endpoint}}"
         }
       ]
@@ -1300,7 +1307,7 @@ The labels (`scenario`, `git_sha`, `endpoint`, `method`, `status`, `url`) propag
       "gridPos": { "x": 0, "y": 16, "w": 12, "h": 8 },
       "targets": [
         {
-          "expr": "k6_vus{scenario=~\"$scenario\", git_sha=~\"$git_sha\"}",
+          "expr": "max(k6_vus{scenario=~\"$scenario\", git_sha=~\"$git_sha\"})",
           "legendFormat": "vus"
         }
       ]
@@ -1313,8 +1320,8 @@ The labels (`scenario`, `git_sha`, `endpoint`, `method`, `status`, `url`) propag
       "fieldConfig": { "defaults": { "unit": "percentunit" } },
       "targets": [
         {
-          "expr": "k6_checks_rate{scenario=~\"$scenario\", git_sha=~\"$git_sha\"}",
-          "legendFormat": "checks pass rate"
+          "expr": "min(k6_checks_rate{scenario=~\"$scenario\", git_sha=~\"$git_sha\"})",
+          "legendFormat": "checks pass rate (worst check)"
         }
       ]
     }
