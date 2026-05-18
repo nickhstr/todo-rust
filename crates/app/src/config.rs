@@ -248,7 +248,7 @@ impl Config {
                 defaults.static_dir.to_string_lossy().to_string(),
             )?
             .set_default("template_autoreload", defaults.template_autoreload)?
-            .set_default("rate_limit.enabled", true)?;
+            .set_default("rate_limit.enabled", defaults.rate_limit.enabled)?;
 
         // 12-factor shortcuts
         if let Ok(url) = std::env::var("DATABASE_URL") {
