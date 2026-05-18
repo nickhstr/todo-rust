@@ -1112,8 +1112,9 @@ export default function () {
   assertStatus(r, 200, 'GET / step 3');
   assertBodyContains(r, titles[0], 'step 3 contains created todo');
 
-  // crude id extraction: looks for `id="todo-<uuid>"` or similar in the body.
-  const ids = [...(r.body || '').matchAll(/data-todo-id="([0-9a-f-]+)"/g)].map((m) => m[1]);
+  // The todo.html template renders each <li id="todo-<uuid>">, so we extract
+  // the UUID from that attribute.
+  const ids = [...(r.body || '').matchAll(/id="todo-([0-9a-f-]{36})"/g)].map((m) => m[1]);
   if (ids.length >= 2) {
     // Step 4: toggle one
     r = http.post(
