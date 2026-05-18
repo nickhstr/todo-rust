@@ -17,6 +17,36 @@ pub struct Config {
     pub template_autoreload: bool,
     #[serde(default)]
     pub rate_limit: RateLimitConfig,
+    #[serde(default)]
+    pub dev: DevConfig,
+}
+
+/// Local-development conveniences. The features here are compiled out of
+/// `--release` builds (see `cfg(debug_assertions)` gates in `router.rs` and
+/// `main.rs`), so a config leak alone can't expose them in production.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct DevConfig {
+    /// When non-empty (and the binary is a debug build), `POST /dev/login`
+    /// drops the bearer into a session as this user. The account is created
+    /// on startup if missing.
+    #[serde(default)]
+    pub auto_login_email: String,
+}
+
+impl DevConfig {
+    /// Returns the trimmed email if dev login should be active (debug build
+    /// AND email configured), else `None`.
+    pub fn enabled_email(&self) -> Option<&str> {
+        if !cfg!(debug_assertions) {
+            return None;
+        }
+        let e = self.auto_login_email.trim();
+        if e.is_empty() {
+            None
+        } else {
+            Some(e)
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -168,6 +198,7 @@ impl Default for Config {
             static_dir: PathBuf::from("static"),
             template_autoreload: false,
             rate_limit: RateLimitConfig::default(),
+            dev: DevConfig::default(),
         }
     }
 }
@@ -247,7 +278,8 @@ impl Config {
                 defaults.static_dir.to_string_lossy().to_string(),
             )?
             .set_default("template_autoreload", defaults.template_autoreload)?
-            .set_default("rate_limit.enabled", defaults.rate_limit.enabled)?;
+            .set_default("rate_limit.enabled", defaults.rate_limit.enabled)?
+            .set_default("dev.auto_login_email", defaults.dev.auto_login_email)?;
 
         // 12-factor shortcuts
         if let Ok(url) = std::env::var("DATABASE_URL") {

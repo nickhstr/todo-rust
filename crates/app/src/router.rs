@@ -67,8 +67,15 @@ pub fn build_router(
         .route("/todos", get(todo_routes::list).post(todo_routes::create))
         .route("/todos/:id/toggle", post(todo_routes::toggle))
         .route("/todos/:id", delete(todo_routes::delete))
-        .merge(auth_endpoints)
-        .layer(auth_layer);
+        .merge(auth_endpoints);
+
+    // Dev-only passwordless login. The route is compiled out of `--release`
+    // builds entirely; the handler also re-checks `enabled_email()` so a debug
+    // build with the config unset still returns 404.
+    #[cfg(debug_assertions)]
+    let api = api.route("/dev/login", post(crate::routes::dev::auto_login));
+
+    let api = api.layer(auth_layer);
 
     let health = health_routes::router(prom);
 

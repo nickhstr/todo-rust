@@ -1,4 +1,6 @@
 pub mod auth;
+#[cfg(debug_assertions)]
+pub mod dev;
 pub mod health;
 pub mod pages;
 pub mod todos;

@@ -78,6 +78,9 @@ async fn main() -> anyhow::Result<()> {
         redis,
     );
 
+    #[cfg(debug_assertions)]
+    ensure_dev_user(&config, &state).await?;
+
     let session_key = config.auth.decoded_session_key()?;
     let signing_key = Key::from(&session_key);
     let mut session_layer = SessionManagerLayer::new(session_store)
@@ -126,6 +129,46 @@ async fn main() -> anyhow::Result<()> {
     .ok();
 
     info!("todo-app shut down");
+    Ok(())
+}
+
+/// If `dev.auto_login_email` is set, make sure that user exists so `POST
+/// /dev/login` has someone to log in as. Compiled out of `--release` along
+/// with the route itself. The password is random and never surfaced — the dev
+/// login endpoint bypasses verification.
+#[cfg(debug_assertions)]
+async fn ensure_dev_user(config: &Config, state: &todo_app::AppState) -> anyhow::Result<()> {
+    use rand::Rng;
+    use todo_domain::NewUser;
+
+    let Some(email) = config.dev.enabled_email() else {
+        return Ok(());
+    };
+
+    if state.users.find_by_email(email).await?.is_some() {
+        tracing::warn!(email, "dev auto-login enabled (existing user)");
+        return Ok(());
+    }
+
+    // Random password — never displayed; /dev/login skips verification.
+    let password: String = (0..48)
+        .map(|_| {
+            let i = rand::thread_rng().gen_range(0..62);
+            b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"[i] as char
+        })
+        .collect();
+    let new = NewUser {
+        email: email.to_owned(),
+        password,
+    };
+    match state.users.create(new).await {
+        Ok(_) => tracing::warn!(email, "dev auto-login enabled (new user seeded)"),
+        Err(todo_storage::StorageError::Conflict(_)) => {
+            // Lost the race; that's fine.
+            tracing::warn!(email, "dev auto-login enabled (race-created)");
+        }
+        Err(err) => return Err(err.into()),
+    }
     Ok(())
 }
 

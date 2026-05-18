@@ -67,6 +67,22 @@ impl UserRepository {
         Ok(row.as_ref().map(row_to_user))
     }
 
+    /// Look up a user by email WITHOUT verifying a password. Intended for dev
+    /// auto-login and other trusted lookups — never use this on the login path.
+    #[tracing::instrument(skip(self), fields(email = %email))]
+    pub async fn find_by_email(&self, email: &str) -> Result<Option<User>, StorageError> {
+        let row = sqlx::query(
+            "SELECT id, email, password_hash, created_at \
+             FROM users \
+             WHERE LOWER(email) = LOWER($1) \
+             LIMIT 1",
+        )
+        .bind(email.trim())
+        .fetch_optional(&*self.pool)
+        .await?;
+        Ok(row.as_ref().map(row_to_user))
+    }
+
     /// Returns `Ok(Some(user))` on a matching email+password, `Ok(None)` for both
     /// "no such user" and "wrong password". Time spent in this function is roughly
     /// constant across all three outcomes by performing a dummy verify when the

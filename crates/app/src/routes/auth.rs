@@ -24,7 +24,11 @@ pub async fn login_form(
 ) -> Result<Response, AppError> {
     let html = state.templates.render(
         "login.html",
-        context! { next => safe_next(&q.next), error => "" },
+        context! {
+            next => safe_next(&q.next),
+            error => "",
+            dev_login_enabled => state.config.dev.enabled_email().is_some(),
+        },
     )?;
     Ok(html.into_response())
 }
@@ -145,7 +149,11 @@ fn render_login_form(
 ) -> Result<Response, AppError> {
     let html = state.templates.render(
         "login.html",
-        context! { next => safe_next(next), error => msg },
+        context! {
+            next => safe_next(next),
+            error => msg,
+            dev_login_enabled => state.config.dev.enabled_email().is_some(),
+        },
     )?;
     // HX-Retarget=body + HX-Reswap=outerHTML tells htmx to swap the whole page,
     // not just the form's default target, on a non-2xx response.

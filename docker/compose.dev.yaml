@@ -13,6 +13,9 @@ services:
       RUST_LOG: info,todo_app=debug,sqlx=warn,tower_http=debug
       APP__OBSERVABILITY__LOG_FORMAT: pretty
       APP__TEMPLATE_AUTORELOAD: "true"
+      # Dev-only passwordless login. The route + bootstrap are also gated by
+      # cfg(debug_assertions), so a release build ignores this even if set.
+      APP__DEV__AUTO_LOGIN_EMAIL: dev@local
     volumes:
       - ../crates:/app/crates
       - ../templates:/app/templates

@@ -24,6 +24,10 @@ pub struct TestServer {
 }
 
 pub async fn spawn() -> TestServer {
+    spawn_with(|_| {}).await
+}
+
+pub async fn spawn_with(configure: impl FnOnce(&mut Config)) -> TestServer {
     let pg = Postgres::default()
         .with_db_name("todo")
         .with_user("todo")
@@ -53,6 +57,7 @@ pub async fn spawn() -> TestServer {
         .join("static");
     cfg.auth.session_key = hex::encode([7u8; 64]); // 64 bytes, deterministic
     cfg.auth.cookie_secure = false;
+    configure(&mut cfg);
 
     let pool = build_pool(&cfg.database).await.expect("pool");
     run_migrations(&pool).await.expect("migrate");

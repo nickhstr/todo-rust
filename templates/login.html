@@ -53,5 +53,13 @@
     </div>
   </form>
 
+  {% if dev_login_enabled %}
+    <form method="post" action="/dev/login" class="mt-6 anim-fade-up" style="animation-delay: 180ms;">
+      <button type="submit" class="btn-link" style="opacity: 0.7;">
+        Dev sign-in (skip credentials)
+      </button>
+    </form>
+  {% endif %}
+
 </section>
 {% endblock %}
