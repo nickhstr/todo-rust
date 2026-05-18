@@ -1191,7 +1191,14 @@ Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>"
 
 The dashboard is provisioned alongside the existing `app.json`. Grafana picks it up on next start (or sidecar reload).
 
-The exact k6 metric names depend on k6's prometheus-rw output and may vary across versions. The dashboard below uses the names emitted by k6 v0.50 with `K6_PROMETHEUS_RW_TREND_STATS=avg,p(50),p(95),p(99),max` (set in `compose.k6.yaml`). With that setting, each trend metric gets a `stat=` label (e.g. `k6_http_req_duration{stat="p(95)"}`) instead of being a histogram.
+The exact k6 metric names depend on k6's prometheus-rw output and vary across versions. We use k6 v0.53.0 (bumped from v0.50 during implementation for native ESM support). With `K6_PROMETHEUS_RW_TREND_STATS=avg,p(50),p(95),p(99),max` (set in `compose.k6.yaml`), v0.53 emits trends as separate metrics with the stat baked into the name suffix:
+
+- counters → `k6_http_reqs_total`, `k6_data_received_total`
+- rates → `k6_http_req_failed_rate`, `k6_checks_rate` (already a value in [0, 1])
+- trends → `k6_http_req_duration_p95`, `k6_http_req_duration_p99`, etc. (one metric per stat)
+- gauges → `k6_vus`
+
+The labels (`scenario`, `git_sha`, `endpoint`, `method`, `status`, `url`) propagate to every series, so dashboard templating works as designed.
 
 - [ ] **Step 1: Write the dashboard JSON**
 
@@ -1208,7 +1215,7 @@ The exact k6 metric names depend on k6's prometheus-rw output and may vary acros
         "name": "scenario",
         "type": "query",
         "datasource": { "type": "prometheus", "uid": "prometheus" },
-        "query": "label_values(k6_http_reqs, scenario)",
+        "query": "label_values(k6_http_reqs_total, scenario)",
         "refresh": 2,
         "includeAll": true,
         "current": { "text": "All", "value": "$__all" }
@@ -1217,7 +1224,7 @@ The exact k6 metric names depend on k6's prometheus-rw output and may vary acros
         "name": "git_sha",
         "type": "query",
         "datasource": { "type": "prometheus", "uid": "prometheus" },
-        "query": "label_values(k6_http_reqs{scenario=~\"$scenario\"}, git_sha)",
+        "query": "label_values(k6_http_reqs_total{scenario=~\"$scenario\"}, git_sha)",
         "refresh": 2,
         "includeAll": true,
         "current": { "text": "All", "value": "$__all" }
@@ -1232,7 +1239,7 @@ The exact k6 metric names depend on k6's prometheus-rw output and may vary acros
       "gridPos": { "x": 0, "y": 0, "w": 12, "h": 8 },
       "targets": [
         {
-          "expr": "sum(rate(k6_http_reqs{scenario=~\"$scenario\", git_sha=~\"$git_sha\"}[30s]))",
+          "expr": "sum(rate(k6_http_reqs_total{scenario=~\"$scenario\", git_sha=~\"$git_sha\"}[30s]))",
           "legendFormat": "rps"
         }
       ]
@@ -1245,15 +1252,15 @@ The exact k6 metric names depend on k6's prometheus-rw output and may vary acros
       "fieldConfig": { "defaults": { "unit": "ms" } },
       "targets": [
         {
-          "expr": "k6_http_req_duration{scenario=~\"$scenario\", git_sha=~\"$git_sha\", stat=\"p(50)\"}",
+          "expr": "k6_http_req_duration_p50{scenario=~\"$scenario\", git_sha=~\"$git_sha\"}",
           "legendFormat": "p50"
         },
         {
-          "expr": "k6_http_req_duration{scenario=~\"$scenario\", git_sha=~\"$git_sha\", stat=\"p(95)\"}",
+          "expr": "k6_http_req_duration_p95{scenario=~\"$scenario\", git_sha=~\"$git_sha\"}",
           "legendFormat": "p95"
         },
         {
-          "expr": "k6_http_req_duration{scenario=~\"$scenario\", git_sha=~\"$git_sha\", stat=\"p(99)\"}",
+          "expr": "k6_http_req_duration_p99{scenario=~\"$scenario\", git_sha=~\"$git_sha\"}",
           "legendFormat": "p99"
         }
       ]
@@ -1266,8 +1273,8 @@ The exact k6 metric names depend on k6's prometheus-rw output and may vary acros
       "fieldConfig": { "defaults": { "unit": "percentunit" } },
       "targets": [
         {
-          "expr": "sum(rate(k6_http_req_failed{scenario=~\"$scenario\", git_sha=~\"$git_sha\"}[30s])) / clamp_min(sum(rate(k6_http_reqs{scenario=~\"$scenario\", git_sha=~\"$git_sha\"}[30s])), 1)",
-          "legendFormat": "error rate"
+          "expr": "k6_http_req_failed_rate{scenario=~\"$scenario\", git_sha=~\"$git_sha\"}",
+          "legendFormat": "failed rate"
         }
       ]
     },
@@ -1279,7 +1286,7 @@ The exact k6 metric names depend on k6's prometheus-rw output and may vary acros
       "fieldConfig": { "defaults": { "unit": "ms" } },
       "targets": [
         {
-          "expr": "k6_http_req_duration{scenario=~\"$scenario\", git_sha=~\"$git_sha\", stat=\"p(95)\"}",
+          "expr": "k6_http_req_duration_p95{scenario=~\"$scenario\", git_sha=~\"$git_sha\"}",
           "legendFormat": "{{endpoint}}"
         }
       ]
@@ -1298,13 +1305,14 @@ The exact k6 metric names depend on k6's prometheus-rw output and may vary acros
     },
     {
       "id": 6,
-      "title": "Checks per second",
+      "title": "Checks pass rate",
       "type": "timeseries",
       "gridPos": { "x": 12, "y": 16, "w": 12, "h": 8 },
+      "fieldConfig": { "defaults": { "unit": "percentunit" } },
       "targets": [
         {
-          "expr": "sum(rate(k6_checks{scenario=~\"$scenario\", git_sha=~\"$git_sha\"}[30s]))",
-          "legendFormat": "checks/s"
+          "expr": "k6_checks_rate{scenario=~\"$scenario\", git_sha=~\"$git_sha\"}",
+          "legendFormat": "checks pass rate"
         }
       ]
     }
