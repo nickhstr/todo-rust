@@ -52,8 +52,10 @@ impl RateLimiter {
         self
     }
 
-    /// When set to `false`, every request bypasses the limiter. Off for prod;
-    /// on for load tests (where one source IP fires thousands of requests).
+    /// When `false`, every request bypasses the limiter (no bucket lookup, no
+    /// metric increment). Default is `true` (limiting active). Set to `false`
+    /// only when running load tests, where a single source IP would otherwise
+    /// exhaust the burst window immediately.
     #[must_use]
     pub fn enabled(mut self, enabled: bool) -> Self {
         self.enabled = enabled;
