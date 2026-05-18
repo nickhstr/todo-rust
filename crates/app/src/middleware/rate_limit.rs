@@ -24,6 +24,7 @@ pub struct RateLimiter {
     rate_per_sec: f64,
     burst: f64,
     pub(crate) trust_forwarded_for: bool,
+    enabled: bool,
 }
 
 struct Bucket {
@@ -39,6 +40,7 @@ impl RateLimiter {
             rate_per_sec,
             burst,
             trust_forwarded_for: false,
+            enabled: true,
         }
     }
 
@@ -47,6 +49,14 @@ impl RateLimiter {
     #[must_use]
     pub fn trust_forwarded_for(mut self, trust: bool) -> Self {
         self.trust_forwarded_for = trust;
+        self
+    }
+
+    /// When set to `false`, every request bypasses the limiter. Off for prod;
+    /// on for load tests (where one source IP fires thousands of requests).
+    #[must_use]
+    pub fn enabled(mut self, enabled: bool) -> Self {
+        self.enabled = enabled;
         self
     }
 
@@ -76,6 +86,9 @@ pub async fn rate_limit_middleware(
     req: Request,
     next: Next,
 ) -> Response {
+    if !limiter.enabled {
+        return next.run(req).await;
+    }
     let peer_ip = conn
         .map(|c| c.0.ip())
         .unwrap_or(IpAddr::V4(std::net::Ipv4Addr::UNSPECIFIED));
@@ -170,5 +183,61 @@ mod tests {
         let mut h = HeaderMap::new();
         h.insert("x-forwarded-for", "not-an-ip".parse().unwrap());
         assert_eq!(client_ip_from_headers(&h), None);
+    }
+
+    #[tokio::test]
+    async fn disabled_bypass_lets_all_requests_through() {
+        use axum::{
+            body::Body,
+            http::{Request, StatusCode},
+            middleware::from_fn_with_state,
+            routing::get,
+            Router,
+        };
+        use tower::ServiceExt;
+
+        // Burst=1 and rate=0: without bypass, request 2+ would 429.
+        let limiter = RateLimiter::new(0.0, 1.0).enabled(false);
+        let app = Router::new()
+            .route("/x", get(|| async { "ok" }))
+            .route_layer(from_fn_with_state(
+                limiter,
+                super::rate_limit_middleware,
+            ));
+
+        for _ in 0..5 {
+            let req = Request::builder().uri("/x").body(Body::empty()).unwrap();
+            let resp = app.clone().oneshot(req).await.unwrap();
+            assert_eq!(resp.status(), StatusCode::OK);
+        }
+    }
+
+    #[tokio::test]
+    async fn enabled_limiter_still_429s_when_bucket_empty() {
+        use axum::{
+            body::Body,
+            http::{Request, StatusCode},
+            middleware::from_fn_with_state,
+            routing::get,
+            Router,
+        };
+        use tower::ServiceExt;
+
+        // Default `enabled=true`; burst=1 so 2nd request must 429.
+        let limiter = RateLimiter::new(0.0, 1.0);
+        let app = Router::new()
+            .route("/x", get(|| async { "ok" }))
+            .route_layer(from_fn_with_state(
+                limiter,
+                super::rate_limit_middleware,
+            ));
+
+        let req = Request::builder().uri("/x").body(Body::empty()).unwrap();
+        let resp = app.clone().oneshot(req).await.unwrap();
+        assert_eq!(resp.status(), StatusCode::OK);
+
+        let req = Request::builder().uri("/x").body(Body::empty()).unwrap();
+        let resp = app.clone().oneshot(req).await.unwrap();
+        assert_eq!(resp.status(), StatusCode::TOO_MANY_REQUESTS);
     }
 }
