@@ -1,0 +1,48 @@
+deploymentMode: SingleBinary
+
+loki:
+  auth_enabled: false
+  commonConfig:
+    replication_factor: 1
+  storage:
+    type: filesystem
+  schemaConfig:
+    configs:
+      - from: 2025-01-01
+        store: tsdb
+        object_store: filesystem
+        schema: v13
+        index:
+          prefix: index_
+          period: 24h
+  pattern_ingester:
+    enabled: false
+  limits_config:
+    retention_period: 168h # 7d
+    max_query_series: 5000
+  compactor:
+    retention_enabled: true
+    delete_request_store: filesystem
+
+singleBinary:
+  replicas: 1
+  persistence:
+    enabled: true
+    storageClass: hcloud-volumes
+    size: 10Gi
+  resources:
+    requests: { cpu: 50m, memory: 256Mi }
+    limits: { cpu: 1, memory: 1Gi }
+
+write: { replicas: 0 }
+read: { replicas: 0 }
+backend: { replicas: 0 }
+
+chunksCache:
+  enabled: false
+resultsCache:
+  enabled: false
+gateway:
+  enabled: false
+test:
+  enabled: false

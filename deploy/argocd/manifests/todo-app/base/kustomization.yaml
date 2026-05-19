@@ -19,6 +19,7 @@ resources:
   - ingress.yaml
   - hpa.yaml
   - pdb.yaml
+  - servicemonitor.yaml
 
 images:
   # Image tag is overridden per overlay; placeholder is the registry path.

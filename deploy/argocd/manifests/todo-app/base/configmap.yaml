@@ -10,9 +10,10 @@ data:
 
   APP__AUTH__COOKIE_SECURE: "true"
 
-  # OTel deliberately off until Plan 3 lands the collector. App startup logs
-  # remain useful via JSON-formatted stdout.
-  APP__OBSERVABILITY__OTEL_ENABLED: "false"
+  # OTel exports to the in-cluster collector (Plan 3). Overlays that don't
+  # run the observability stack (e.g., `local/`) patch this to "false".
+  APP__OBSERVABILITY__OTEL_ENABLED: "true"
+  APP__OBSERVABILITY__OTEL_ENDPOINT: "http://otel-collector-opentelemetry-collector.observability.svc.cluster.local:4317"
   APP__OBSERVABILITY__LOG_FORMAT: "json"
 
   # template autoreload off in prod-shaped envs

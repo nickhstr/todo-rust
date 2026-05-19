@@ -1,0 +1,87 @@
+fullnameOverride: prom
+
+# Prometheus
+prometheus:
+  prometheusSpec:
+    retention: 7d
+    retentionSize: "9GB"
+    storageSpec:
+      volumeClaimTemplate:
+        spec:
+          storageClassName: hcloud-volumes
+          accessModes: [ReadWriteOnce]
+          resources:
+            requests: { storage: 10Gi }
+    resources:
+      requests: { cpu: 100m, memory: 512Mi }
+      limits: { cpu: 1000m, memory: 1.5Gi }
+    podMonitorSelectorNilUsesHelmValues: false
+    serviceMonitorSelectorNilUsesHelmValues: false
+    ruleSelectorNilUsesHelmValues: false
+    enableRemoteWriteReceiver: true # so k6 / OTel etc. can push
+    additionalScrapeConfigs:
+      - job_name: kubernetes-pods
+        kubernetes_sd_configs:
+          - role: pod
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+            action: keep
+            regex: "true"
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
+            action: replace
+            target_label: __metrics_path__
+            regex: (.+)
+          - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+            action: replace
+            target_label: __address__
+            regex: ([^:]+)(?::\d+)?;(\d+)
+            replacement: $1:$2
+
+# Alertmanager
+alertmanager:
+  alertmanagerSpec:
+    storage:
+      volumeClaimTemplate:
+        spec:
+          storageClassName: hcloud-volumes
+          accessModes: [ReadWriteOnce]
+          resources: { requests: { storage: 2Gi } }
+    resources:
+      requests: { cpu: 25m, memory: 64Mi }
+      limits: { cpu: 250m, memory: 256Mi }
+  config: {} # leave empty — config comes from the ESO-managed Secret (Task 4)
+  configSecret: alertmanager-prom-alertmanager
+
+# Grafana
+grafana:
+  fullnameOverride: grafana
+  adminPassword: "REPLACE_AT_FIRST_LOGIN"
+  ingress:
+    enabled: true
+    ingressClassName: nginx
+    annotations:
+      cert-manager.io/cluster-issuer: letsencrypt-prod
+    hosts: ["grafana.nickhstr.dev"]
+    tls:
+      - hosts: ["grafana.nickhstr.dev"]
+        secretName: grafana-tls
+  persistence:
+    enabled: true
+    storageClassName: hcloud-volumes
+    size: 5Gi
+  sidecar:
+    dashboards:
+      enabled: true
+      label: grafana_dashboard
+      labelValue: "1"
+      searchNamespace: ALL
+    datasources:
+      enabled: true
+      label: grafana_datasource
+      labelValue: "1"
+      searchNamespace: ALL
+  resources:
+    requests: { cpu: 25m, memory: 128Mi }
+    limits: { cpu: 500m, memory: 512Mi }
+
+# node-exporter and kube-state-metrics defaults are fine
