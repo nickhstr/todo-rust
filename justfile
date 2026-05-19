@@ -200,3 +200,93 @@ k6-clean-db:
 # Tear down the k6 stack (leaves volumes). Use `just nuke` to wipe volumes.
 k6-down:
     docker compose -f docker/compose.yaml -f docker/compose.k6.yaml down
+
+# --- Tofu / cluster lifecycle (Hetzner prod) ---
+
+# tofu plan against the prod cluster state.
+tofu-plan:
+    cd deploy/tofu && tofu plan
+
+# tofu apply (prompts for yes).
+tofu-apply:
+    cd deploy/tofu && tofu apply
+
+# Show cluster outputs (node IPs, LB IP, etc.).
+tofu-outputs:
+    cd deploy/tofu && tofu output
+
+# --- Kubernetes — prod cluster ---
+
+# Reminder to export KUBECONFIG for the prod cluster.
+k8s-export:
+    @echo "export KUBECONFIG=~/.kube/config-todo"
+
+# Pull a fresh kubeconfig from node 0.
+k8s-kubeconfig:
+    NODE0=$$(cd deploy/tofu && tofu output -raw first_node_ipv4) && \
+        scp root@$$NODE0:/etc/rancher/k3s/k3s.yaml ~/.kube/config-todo && \
+        sed -i.bak "s|server: https://127.0.0.1:6443|server: https://$$NODE0:6443|" ~/.kube/config-todo && \
+        chmod 600 ~/.kube/config-todo
+
+# Cluster overview.
+k8s-ps:
+    KUBECONFIG=~/.kube/config-todo kubectl get nodes
+    KUBECONFIG=~/.kube/config-todo kubectl get pods --all-namespaces -o wide
+
+# ArgoCD UI port-forward (fallback if ingress is broken).
+k8s-argocd-pf:
+    KUBECONFIG=~/.kube/config-todo kubectl -n argocd port-forward svc/argocd-server 8080:443
+
+# Validate every kustomize tree offline.
+k8s-validate:
+    kubectl kustomize deploy/argocd/manifests/platform/cert-issuers       | kubeconform -strict -ignore-missing-schemas -summary
+    kubectl kustomize deploy/argocd/manifests/platform/external-secrets   | kubeconform -strict -ignore-missing-schemas -summary
+    kubectl kustomize deploy/argocd/manifests/platform/alert-rules        | kubeconform -strict -ignore-missing-schemas -summary
+    kubectl kustomize deploy/argocd/manifests/platform/kube-prometheus-stack/dashboards | kubeconform -strict -ignore-missing-schemas -summary
+    kubectl kustomize deploy/argocd/manifests/platform/argocd-pr-token    | kubeconform -strict -ignore-missing-schemas -summary
+    kubectl kustomize deploy/argocd/manifests/smoke                       | kubeconform -strict -ignore-missing-schemas -summary
+    kubectl kustomize deploy/argocd/manifests/todo-app/overlays/staging   | kubeconform -strict -ignore-missing-schemas -summary
+    kubectl kustomize deploy/argocd/manifests/todo-app/overlays/prod      | kubeconform -strict -ignore-missing-schemas -summary
+    kubectl kustomize deploy/argocd/manifests/todo-app/overlays/preview   | kubeconform -strict -ignore-missing-schemas -summary
+    kubectl kustomize deploy/argocd/manifests/todo-app/overlays/local     | kubeconform -strict -ignore-missing-schemas -summary
+
+# --- App inspection (in-cluster) ---
+
+# Logs for the staging or prod app pod.
+k8s-logs env='staging':
+    KUBECONFIG=~/.kube/config-todo \
+        kubectl -n todo-app-{{env}} logs -f deployment/todo-app
+
+# Status snapshot for an environment.
+k8s-status env='staging':
+    @KUBECONFIG=~/.kube/config-todo kubectl -n todo-app-{{env}} get all,certificate,externalsecret,cluster.postgresql.cnpg.io
+
+# psql shell into the in-cluster Postgres primary.
+k8s-psql env='staging':
+    KUBECONFIG=~/.kube/config-todo \
+        kubectl -n todo-app-{{env}} exec -it todo-postgres-1 -c postgres -- psql -U todo -d todo
+
+# Trigger a hard refresh of an ArgoCD Application.
+k8s-sync app:
+    KUBECONFIG=~/.kube/config-todo \
+        kubectl -n argocd patch application {{app}} \
+            --type=merge --patch '{"metadata":{"annotations":{"argocd.argoproj.io/refresh":"hard"}}}'
+
+# --- Local k3d parity ---
+
+# Bring up the prod manifests on a local k3d cluster (builds image, imports, applies).
+up-k8s:
+    ./deploy/local/up-k8s.sh
+
+# Tear it down.
+down-k8s:
+    k3d cluster delete todo || true
+
+# Port-forward the local cluster's app Service to localhost:8080.
+fwd-k8s:
+    KUBECONFIG=$$(k3d kubeconfig write todo) \
+        kubectl -n todo-app-local port-forward svc/todo-app 8080:80
+
+# Show the local kubeconfig path.
+kubeconfig-k8s:
+    @k3d kubeconfig write todo
