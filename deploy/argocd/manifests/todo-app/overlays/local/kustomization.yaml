@@ -4,6 +4,7 @@ kind: Kustomization
 namespace: todo-app-local
 
 resources:
+  - namespace.yaml
   - ../../base
   - session-key-secret.yaml
 
