@@ -1,0 +1,20 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: todo-app-prod
+  namespace: argocd
+  finalizers: [resources-finalizer.argocd.argoproj.io]
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/nickhstr/todo-rust.git
+    targetRevision: HEAD
+    path: deploy/argocd/manifests/todo-app/overlays/prod
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: todo-app-prod
+  syncPolicy:
+    automated:
+      prune: false # manual prune for prod safety
+      selfHeal: true
+    syncOptions: [ServerSideApply=true, CreateNamespace=true]

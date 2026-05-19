@@ -1,0 +1,32 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: todo-postgres
+spec:
+  instances: 1
+  imageName: ghcr.io/cloudnative-pg/postgresql:16.4
+  storage:
+    size: 5Gi
+    storageClass: hcloud-volumes
+
+  bootstrap:
+    initdb:
+      database: todo
+      owner: todo
+      # postInitSQL runs once at cluster init; we deliberately leave it empty —
+      # the app runs sqlx migrations on startup, which is the canonical source
+      # of truth for schema.
+
+  postgresql:
+    parameters:
+      max_connections: "100"
+      shared_buffers: "256MB"
+      work_mem: "8MB"
+      log_min_duration_statement: "500"
+
+  monitoring:
+    enablePodMonitor: false # Plan 3 turns this on
+
+  resources:
+    requests: { cpu: 50m, memory: 256Mi }
+    limits: { cpu: 1000m, memory: 1Gi }

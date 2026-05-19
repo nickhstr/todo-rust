@@ -1,0 +1,30 @@
+---
+# S3 credentials for CNPG to write WAL + base backups.
+# Sourced from 1Password via ESO.
+apiVersion: external-secrets.io/v1beta1
+kind: ExternalSecret
+metadata:
+  name: cnpg-s3-creds
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    name: onepassword-connect
+    kind: ClusterSecretStore
+  target:
+    name: cnpg-s3-creds
+    creationPolicy: Owner
+  data:
+    - secretKey: access_key
+      remoteRef: { key: hetzner-s3-creds, property: access_key }
+    - secretKey: secret_key
+      remoteRef: { key: hetzner-s3-creds, property: secret_key }
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: ScheduledBackup
+metadata:
+  name: todo-postgres-daily
+spec:
+  schedule: "0 0 2 * * *" # 02:00 UTC daily
+  backupOwnerReference: self
+  cluster:
+    name: todo-postgres

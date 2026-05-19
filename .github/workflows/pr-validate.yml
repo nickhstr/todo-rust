@@ -1,0 +1,82 @@
+name: pr-validate
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  rust:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: fmt
+        run: cargo fmt --all --check
+
+      - name: clippy
+        run: cargo clippy --workspace --all-targets -- -D warnings
+
+      - name: unit tests
+        run: cargo test --workspace --lib --bins
+
+      - name: integration tests (testcontainers, needs docker)
+        run: cargo test --workspace
+
+  docker:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: docker build (no push)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: docker/Dockerfile
+          push: false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            GIT_SHA=${{ env.PR_HEAD_SHA }}
+
+  manifests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: install kustomize + kubeconform
+        run: |
+          curl -sLo /tmp/kustomize.tar.gz https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize/v5.4.3/kustomize_v5.4.3_linux_amd64.tar.gz
+          tar -xzf /tmp/kustomize.tar.gz -C /usr/local/bin
+          curl -sLo /tmp/kubeconform.tar.gz https://github.com/yannh/kubeconform/releases/download/v0.6.7/kubeconform-linux-amd64.tar.gz
+          tar -xzf /tmp/kubeconform.tar.gz -C /usr/local/bin
+
+      - name: validate staging overlay
+        run: |
+          kustomize build deploy/argocd/manifests/todo-app/overlays/staging \
+            | kubeconform -strict -ignore-missing-schemas -summary
+
+      - name: validate prod overlay
+        run: |
+          kustomize build deploy/argocd/manifests/todo-app/overlays/prod \
+            | kubeconform -strict -ignore-missing-schemas -summary
+
+      - name: validate preview overlay
+        run: |
+          kustomize build deploy/argocd/manifests/todo-app/overlays/preview \
+            | kubeconform -strict -ignore-missing-schemas -summary

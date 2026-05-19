@@ -1,0 +1,20 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: todo-app-prod
+
+resources:
+  - ../../base
+  - postgres-backup.yaml # extra resource (ObjectStore + ScheduledBackup) only in prod
+
+patches:
+  - path: patches.yaml
+  - path: external-secret.yaml
+    target:
+      kind: ExternalSecret
+      name: todo-app-secrets
+
+images:
+  - name: todo-app
+    newName: ghcr.io/nickhstr/todo-app
+    newTag: bootstrap # GHA's promote-prod workflow bumps this
