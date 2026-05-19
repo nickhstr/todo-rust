@@ -21,7 +21,11 @@ async fn dev_login_drops_into_session_for_seeded_user() {
         .send()
         .await
         .unwrap();
-    assert!(signup.status().is_redirection(), "signup got {}", signup.status());
+    assert!(
+        signup.status().is_redirection(),
+        "signup got {}",
+        signup.status()
+    );
 
     let logout = app
         .client
@@ -29,7 +33,11 @@ async fn dev_login_drops_into_session_for_seeded_user() {
         .send()
         .await
         .unwrap();
-    assert!(logout.status().is_redirection(), "logout got {}", logout.status());
+    assert!(
+        logout.status().is_redirection(),
+        "logout got {}",
+        logout.status()
+    );
 
     // Now exercise the dev login.
     let dev = app
@@ -38,7 +46,11 @@ async fn dev_login_drops_into_session_for_seeded_user() {
         .send()
         .await
         .unwrap();
-    assert!(dev.status().is_redirection(), "dev login got {}", dev.status());
+    assert!(
+        dev.status().is_redirection(),
+        "dev login got {}",
+        dev.status()
+    );
     assert_eq!(dev.headers().get("location").unwrap(), "/");
 
     // Cookie jar should now hold a valid session.
