@@ -1,13 +1,18 @@
 name: main-deploy
 
 on:
-  push:
-    branches: [main]
-    paths-ignore:
-      - 'deploy/**'        # avoid self-retrigger from manifest bumps
-      - 'docs/**'
-      - 'README.md'
-      - '.github/**'
+  # Manual-only until external infra (Hetzner cluster + GH_DEPLOY_TOKEN secret +
+  # GHCR + ArgoCD) is set up. To re-enable auto-deploy on push to main, restore
+  # the `push:` block below (paths-ignore stays so manifest bumps don't loop):
+  #
+  # push:
+  #   branches: [main]
+  #   paths-ignore:
+  #     - 'deploy/**'
+  #     - 'docs/**'
+  #     - 'README.md'
+  #     - '.github/**'
+  workflow_dispatch:
 
 permissions:
   contents: write          # we git push
