@@ -1,0 +1,48 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: { name: todo-app }
+spec:
+  replicas: 1
+---
+# Valkey: use local-path storage and smaller PVC
+apiVersion: apps/v1
+kind: StatefulSet
+metadata: { name: valkey }
+spec:
+  volumeClaimTemplates:
+    - metadata: { name: data }
+      spec:
+        accessModes: [ReadWriteOnce]
+        storageClassName: local-path
+        resources:
+          requests: { storage: 256Mi }
+---
+# Local does not run the observability stack; the app would fail to export
+# OTel and noisily retry. Disable it here.
+apiVersion: v1
+kind: ConfigMap
+metadata: { name: todo-app-config }
+data:
+  APP__OBSERVABILITY__OTEL_ENABLED: "false"
+  APP__AUTH__COOKIE_SECURE: "false"
+---
+$patch: delete
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata: { name: todo-app }
+---
+$patch: delete
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata: { name: todo-app }
+---
+$patch: delete
+apiVersion: external-secrets.io/v1beta1
+kind: ExternalSecret
+metadata: { name: todo-app-secrets }
+---
+$patch: delete
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata: { name: todo-app }
