@@ -1,0 +1,21 @@
+controller:
+  ingressClassResource:
+    name: nginx
+    enabled: true
+    default: true
+  service:
+    type: LoadBalancer
+    annotations:
+      load-balancer.hetzner.cloud/name: "todo-app-ingress"
+      load-balancer.hetzner.cloud/location: "nbg1"
+      load-balancer.hetzner.cloud/use-private-ip: "true"
+      load-balancer.hetzner.cloud/network-zone: "eu-central"
+      load-balancer.hetzner.cloud/type: "lb11"
+  config:
+    use-proxy-protocol: "false"
+    use-forwarded-headers: "true"
+    proxy-real-ip-cidr: "10.0.0.0/16"
+  metrics:
+    enabled: true
+    serviceMonitor:
+      enabled: false # Plan 3

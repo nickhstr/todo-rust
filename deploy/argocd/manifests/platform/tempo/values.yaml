@@ -1,0 +1,23 @@
+tempo:
+  retention: 72h
+  storage:
+    trace:
+      backend: local
+      local:
+        path: /var/tempo/traces
+  receivers:
+    otlp:
+      protocols:
+        grpc:
+          endpoint: 0.0.0.0:4317
+        http:
+          endpoint: 0.0.0.0:4318
+
+persistence:
+  enabled: true
+  storageClassName: hcloud-volumes
+  size: 10Gi
+
+resources:
+  requests: { cpu: 50m, memory: 256Mi }
+  limits: { cpu: 1, memory: 1Gi }

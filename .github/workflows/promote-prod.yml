@@ -1,0 +1,67 @@
+name: promote-prod
+
+on:
+  workflow_dispatch:
+    inputs:
+      sha:
+        description: 'Git SHA to deploy to prod (must already be built and pushed to ghcr)'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  promote:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      INPUT_SHA: ${{ inputs.sha }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GH_DEPLOY_TOKEN }}
+          fetch-depth: 0
+
+      - name: validate sha format
+        run: |
+          # Reject anything that isn't 7-40 hex chars — defends against shell-meta injection
+          if ! [[ "$INPUT_SHA" =~ ^[0-9a-fA-F]{7,40}$ ]]; then
+            echo "Invalid SHA format: $INPUT_SHA" >&2
+            exit 1
+          fi
+
+      - name: verify image exists in ghcr
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # GHCR returns 200 if the manifest exists, 404 otherwise.
+          STATUS=$(curl -sL -o /dev/null -w "%{http_code}" \
+            -H "Authorization: Bearer $(echo -n "$TOKEN" | base64)" \
+            "https://ghcr.io/v2/nickhstr/todo-app/manifests/${INPUT_SHA}")
+          if [ "$STATUS" != "200" ]; then
+            echo "Image ghcr.io/nickhstr/todo-app:${INPUT_SHA} not found (HTTP $STATUS)"
+            exit 1
+          fi
+
+      - name: install kustomize
+        run: |
+          curl -sLo /tmp/kustomize.tar.gz https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize/v5.4.3/kustomize_v5.4.3_linux_amd64.tar.gz
+          tar -xzf /tmp/kustomize.tar.gz -C /usr/local/bin
+
+      - name: bump prod image tag
+        working-directory: deploy/argocd/manifests/todo-app/overlays/prod
+        run: |
+          kustomize edit set image "todo-app=ghcr.io/nickhstr/todo-app:${INPUT_SHA}"
+
+      - name: commit and push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add deploy/argocd/manifests/todo-app/overlays/prod/kustomization.yaml
+          if git diff --staged --quiet; then
+            echo "Prod is already on this SHA."
+          else
+            git commit -m "prod: deploy ${INPUT_SHA}"
+            git push
+          fi

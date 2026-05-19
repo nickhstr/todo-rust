@@ -167,6 +167,54 @@ Notable knobs:
 - One user per email; no multi-tenancy beyond per-user isolation.
 - The `tailwind` dev-watch loop runs `find` mtime polling at 1s — fine for one engineer's laptop; not appropriate as a CI build step (use `npm run build` instead).
 
+## Production deployment (Hetzner k3s)
+
+The production deployment manifests live under `deploy/`. The target is a
+self-managed 3-node k3s HA cluster on Hetzner Cloud, managed via OpenTofu +
+ArgoCD. Three environments share one cluster:
+
+| Env | URL | Replicas | Postgres |
+|---|---|---|---|
+| prod    | https://todo.nickhstr.dev         | 2 (HPA 2–6) | CNPG 2-instance, WAL archive |
+| staging | https://staging.todo.nickhstr.dev | 1           | CNPG 1-instance |
+| preview | https://pr-<N>.todo.nickhstr.dev  | 1 (per PR)  | CNPG 1-instance, ephemeral |
+
+**CI/CD** (`.github/workflows/`):
+- `pr-validate.yml` — runs on every PR (fmt, clippy, tests, docker build, manifest validation via `kustomize build | kubeconform`).
+- `main-deploy.yml` — runs on push to `main`. Builds, pushes to GHCR, commits the new tag to the staging overlay. ArgoCD reconciles.
+- `promote-prod.yml` — manual `workflow_dispatch` taking a SHA. Verifies image, bumps prod overlay.
+- `preview-build.yml` — on PRs labeled `preview`. Builds + pushes `pr-<N>-<sha>` and comments the URL.
+
+**Plan files:** the implementation is documented as five plans under `docs/superpowers/plans/2026-05-18-k8s-*.md` (foundation, app+CI/CD, observability, preview envs, local k3d).
+
+**Day-2:**
+
+```bash
+just tofu-plan                   # preview infra changes
+just tofu-apply                  # apply infra changes
+just k8s-kubeconfig              # pull a fresh kubeconfig from node 0
+just k8s-ps                      # cluster overview
+just k8s-validate                # offline manifest validation across all overlays
+just k8s-status prod             # all,certificate,externalsecret,cluster.cnpg in todo-app-prod
+just k8s-logs staging            # follow app logs
+just k8s-psql staging            # psql shell into the in-cluster Postgres primary
+just k8s-sync todo-app-staging   # force an ArgoCD refresh
+```
+
+### Local k8s validation
+
+The compose stack (`just up`) is the daily inner loop. The k3d path is the
+"does this manifest actually work on real Kubernetes" escape hatch:
+
+```bash
+just up-k8s     # build app image, k3d cluster, install CNPG operator, apply local overlay
+just fwd-k8s    # port-forward http://localhost:8080 → in-cluster Service
+just down-k8s   # delete the k3d cluster
+```
+
+See `deploy/local/README.md` for the diff from prod and when to reach for
+this path vs `just up` (docker compose) vs a real preview env.
+
 ## Further reading
 
 See `CLAUDE.md` for an annotated tour of the tree, deviations from the spec, and a running list of sharp edges (CSP requirements for Alpine + htmx, `--watch=always` for Tailwind in detached containers, Tempo's `?start=&end=` requirement, OTel context activator for log↔trace correlation, etc.).

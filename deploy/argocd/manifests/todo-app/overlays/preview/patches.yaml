@@ -1,0 +1,34 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: { name: todo-app }
+spec:
+  replicas: 1
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata: { name: todo-postgres }
+spec:
+  instances: 1
+  storage:
+    size: 1Gi
+  # No backup config — previews are ephemeral.
+---
+# Host is replaced per-PR by the ApplicationSet via Argo's templating in Plan 4.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata: { name: todo-app }
+spec:
+  rules:
+    - host: preview-placeholder.todo.nickhstr.dev
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: todo-app
+                port: { number: 80 }
+  tls:
+    - hosts: [preview-placeholder.todo.nickhstr.dev]
+      secretName: todo-app-tls

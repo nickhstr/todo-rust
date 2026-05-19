@@ -1,0 +1,19 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: todo-postgres
+spec:
+  instances: 1
+  storage:
+    size: 512Mi
+    storageClass: local-path # k3d default
+  postgresql:
+    parameters:
+      # Local CNPG cluster fits in <512Mi total; shrink shared_buffers to
+      # match (base value is 256MB which would require the request to be
+      # ≥256Mi per CNPG's validation webhook).
+      shared_buffers: "64MB"
+      work_mem: "4MB"
+  resources:
+    requests: { cpu: 25m, memory: 128Mi }
+    limits: { cpu: 500m, memory: 512Mi }

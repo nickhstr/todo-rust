@@ -1,0 +1,54 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: todo-app-baseline
+  labels:
+    release: prom # discovered by kube-prometheus-stack's PromOperator selector
+spec:
+  groups:
+    - name: app
+      rules:
+        - alert: AppPodCrashloop
+          expr: rate(kube_pod_container_status_restarts_total{namespace=~"todo-app-.*"}[10m]) > 0.005
+          for: 10m
+          labels: { severity: warning }
+          annotations:
+            summary: "{{ $labels.namespace }}/{{ $labels.pod }} crashing"
+            description: "Container in {{ $labels.pod }} is restarting frequently."
+
+        - alert: App5xxBurnRate
+          expr: |
+            sum(rate(http_requests_total{namespace=~"todo-app-.*",status=~"5.."}[5m]))
+              / sum(rate(http_requests_total{namespace=~"todo-app-.*"}[5m])) > 0.05
+          for: 10m
+          labels: { severity: critical }
+          annotations:
+            summary: "App 5xx rate above 5% for 10m"
+
+    - name: data
+      rules:
+        - alert: PostgresDown
+          expr: up{job=~"prom-.*postgres-exporter.*"} == 0
+          for: 5m
+          labels: { severity: critical }
+          annotations:
+            summary: "Postgres pod {{ $labels.pod }} appears down"
+
+    - name: nodes
+      rules:
+        - alert: DiskPressure
+          expr: |
+            (1 - node_filesystem_free_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"}) > 0.85
+          for: 15m
+          labels: { severity: warning }
+          annotations:
+            summary: "Node {{ $labels.instance }} disk > 85% full"
+
+    - name: certs
+      rules:
+        - alert: CertExpiringSoon
+          expr: certmanager_certificate_expiration_timestamp_seconds - time() < 14*86400
+          for: 1h
+          labels: { severity: warning }
+          annotations:
+            summary: "{{ $labels.name }} expires in < 14 days"

@@ -1,0 +1,20 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# namespace and namePrefix are injected by the ApplicationSet template
+# (kustomize.namePrefix: 'pr-<N>-') in Plan 4. We leave them unset here.
+
+resources:
+  - ../../base
+
+patches:
+  - path: patches.yaml
+  - path: external-secret.yaml
+    target:
+      kind: ExternalSecret
+      name: todo-app-secrets
+
+images:
+  - name: todo-app
+    newName: ghcr.io/nickhstr/todo-app
+    newTag: bootstrap # ApplicationSet templates the real tag per PR

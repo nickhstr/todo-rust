@@ -1,0 +1,13 @@
+crds:
+  create: true
+
+monitoring:
+  podMonitorEnabled: false # turn on with Plan 3
+  grafanaDashboard:
+    create: false
+
+resources:
+  requests: { cpu: 50m, memory: 128Mi }
+  limits: { cpu: 500m, memory: 256Mi }
+
+# The operator runs cluster-wide; one instance manages clusters in any namespace.

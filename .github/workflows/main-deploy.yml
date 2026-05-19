@@ -1,0 +1,80 @@
+name: main-deploy
+
+on:
+  # Manual-only until external infra (Hetzner cluster + GH_DEPLOY_TOKEN secret +
+  # GHCR + ArgoCD) is set up. To re-enable auto-deploy on push to main, restore
+  # the `push:` block below (paths-ignore stays so manifest bumps don't loop):
+  #
+  # push:
+  #   branches: [main]
+  #   paths-ignore:
+  #     - 'deploy/**'
+  #     - 'docs/**'
+  #     - 'README.md'
+  #     - '.github/**'
+  workflow_dispatch:
+
+permissions:
+  contents: write          # we git push
+  packages: write          # we push to ghcr
+
+jobs:
+  build-and-deploy-staging:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      COMMIT_SHA: ${{ github.sha }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GH_DEPLOY_TOKEN }}
+          fetch-depth: 0
+
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+
+      - name: unit tests
+        run: cargo test --workspace --lib --bins
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: log in to ghcr
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: docker build + push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: docker/Dockerfile
+          push: true
+          tags: ghcr.io/nickhstr/todo-app:${{ env.COMMIT_SHA }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            GIT_SHA=${{ env.COMMIT_SHA }}
+
+      - name: install kustomize
+        run: |
+          curl -sLo /tmp/kustomize.tar.gz https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize/v5.4.3/kustomize_v5.4.3_linux_amd64.tar.gz
+          tar -xzf /tmp/kustomize.tar.gz -C /usr/local/bin
+
+      - name: bump staging image tag
+        working-directory: deploy/argocd/manifests/todo-app/overlays/staging
+        run: |
+          kustomize edit set image "todo-app=ghcr.io/nickhstr/todo-app:${COMMIT_SHA}"
+
+      - name: commit and push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add deploy/argocd/manifests/todo-app/overlays/staging/kustomization.yaml
+          if git diff --staged --quiet; then
+            echo "No image tag change; skipping commit."
+          else
+            git commit -m "staging: deploy ${COMMIT_SHA}"
+            git push
+          fi
