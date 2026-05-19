@@ -26,7 +26,7 @@
         hx-post="/todos"
         hx-target="#todo-list"
         hx-swap="afterbegin"
-        hx-on::after-request="if(event.detail.successful){ this.reset(); this.querySelector('input[name=title]').focus(); }">
+        hx-on::after:swap="this.reset(); this.querySelector('input[name=title]').focus();">
     <label for="new-todo" class="field-label">New entry</label>
     <div class="flex items-end gap-3">
       <input
@@ -45,7 +45,7 @@
       </button>
     </div>
     <p class="mt-2 flex items-center justify-between">
-      <span class="eyebrow">Press &uarr; to recall · Enter to commit</span>
+      <span class="eyebrow">Enter to commit</span>
       <span class="submit-spinner" aria-live="polite">Inscribing&hellip;</span>
     </p>
   </form>

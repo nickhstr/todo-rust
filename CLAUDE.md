@@ -47,6 +47,25 @@ Both are referenced from `templates/base.html` by their versioned filenames. The
 
 To bump a version: download the new file into `static/vendor/`, regenerate the `.gz` and `.br` siblings (`gzip -9 -k -f $f && brotli -9 -k -f $f`), and update the `<script src=...>` in `base.html`. The `ServeDir` is built with `precompressed_gzip().precompressed_br()` so the compressed siblings serve automatically with the right `Content-Encoding`.
 
+### htmx 4 — validate all usage against the v4 API
+
+**This project uses htmx 4 (beta), which has breaking API changes from htmx 1/2.** Always verify htmx usage against the v4 docs (`four.htmx.org`) or the vendored source. Do not copy examples from htmx 1/2 docs or Stack Overflow without checking compatibility.
+
+Key differences from htmx 1/2:
+
+| htmx 1/2 | htmx 4 | Notes |
+|---|---|---|
+| `htmx:afterRequest` (camelCase) | `htmx:after:request` (colon-separated) | All lifecycle events renamed |
+| `hx-on::after-request` | `hx-on::after:request` | Hyphen in event → colons in v4 |
+| `event.detail.successful` | **removed** | Use `hx-on::after:swap` instead (only fires on success) |
+| `event.detail.xhr` | `event.detail.ctx.response` | Response object moved under `ctx` |
+
+**Response headers** (`HX-Redirect`, `HX-Retarget`, `HX-Reswap`, etc.) work the same — htmx 4 parses all `HX-*` response headers generically.
+
+**Swap spec modifiers** (`swap:200ms`, `settle:100ms`) still work — `parseInterval` handles `ms`/`s`/`m` suffixes.
+
+**Rule:** any time you write `event.detail.*` in an `hx-on` handler, verify the property exists in the vendored htmx 4 source (`grep -o "successful\|xhr\|etc" static/vendor/htmx-4.0.0-beta3.min.js`).
+
 ## Things the plan says one way but the code does differently
 
 | Plan | Reality | Why |
