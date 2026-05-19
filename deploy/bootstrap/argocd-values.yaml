@@ -1,0 +1,28 @@
+global:
+  domain: argocd.todo.nickhstr.dev
+
+configs:
+  params:
+    server.insecure: false
+  cm:
+    timeout.reconciliation: 30s
+    application.instanceLabelKey: argocd.argoproj.io/instance
+
+server:
+  ingress:
+    enabled: true
+    ingressClassName: nginx
+    hostname: argocd.todo.nickhstr.dev
+    annotations:
+      cert-manager.io/cluster-issuer: letsencrypt-prod
+    tls: true
+
+dex:
+  enabled: false # we'll wire SSO later if desired
+
+# Pin app sync to manual-sync by default; we'll opt into auto-sync per app.
+controller:
+  metrics:
+    enabled: true
+    serviceMonitor:
+      enabled: false # Plan 3

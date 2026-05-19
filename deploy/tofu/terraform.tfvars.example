@@ -1,0 +1,7 @@
+hcloud_token          = "REDACTED — paste from 1Password hetzner-api-token"
+cloudflare_api_token  = "REDACTED — paste from 1Password cloudflare-api-token"
+cloudflare_zone_name  = "nickhstr.dev"
+domain_prefix         = "todo"
+ssh_admin_pubkey      = "ssh-ed25519 AAAA... your@host"
+ssh_admin_source_ipv4 = "203.0.113.5"  # `curl ifconfig.me`
+lb_ipv4               = "" # set after ingress-nginx is up (Task 10/11)

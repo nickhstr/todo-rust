@@ -1,0 +1,5 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - cluster-secret-store.yaml
+# Note: values.yaml is consumed by the Helm Application; Kustomize doesn't see it.

@@ -1,0 +1,12 @@
+crds:
+  enabled: true
+
+prometheus:
+  enabled: false # turn on with Plan 3
+
+# Cloudflare DNS-01 solver needs the API token mounted; we'll create the
+# secret separately (Task 13).
+
+extraArgs:
+  - --dns01-recursive-nameservers=1.1.1.1:53,8.8.8.8:53
+  - --dns01-recursive-nameservers-only

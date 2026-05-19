@@ -1,0 +1,24 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: hcloud-ccm
+  namespace: argocd
+  finalizers: [resources-finalizer.argocd.argoproj.io]
+spec:
+  project: default
+  sources:
+    - repoURL: https://charts.hetzner.cloud
+      chart: hcloud-cloud-controller-manager
+      targetRevision: 1.20.0
+      helm:
+        valueFiles:
+          - $values/deploy/argocd/manifests/platform/hcloud-ccm/values.yaml
+    - repoURL: https://github.com/nickhstr/todo-rust.git
+      targetRevision: HEAD
+      ref: values
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: hcloud-system
+  syncPolicy:
+    automated: { prune: true, selfHeal: true }
+    syncOptions: [ServerSideApply=true, CreateNamespace=true]

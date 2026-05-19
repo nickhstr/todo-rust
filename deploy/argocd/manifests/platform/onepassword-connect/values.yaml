@@ -1,0 +1,12 @@
+# The 1Password Connect chart ("@1password/connect" on Helm) reads the
+# credentials.json file from a Secret we created manually (Plan 1 Task 20).
+connect:
+  credentialsKey: 1password-credentials.json
+  credentialsName: op-credentials
+
+operator:
+  create: false # we use the standalone external-secrets-operator, not the 1P operator
+
+service:
+  type: ClusterIP
+  port: 8080
