@@ -1,0 +1,53 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: todo-app-previews
+  namespace: argocd
+spec:
+  goTemplate: true
+  goTemplateOptions: ["missingkey=error"]
+  generators:
+    - pullRequest:
+        github:
+          owner: nickhstr
+          repo: todo-rust
+          tokenRef:
+            secretName: github-pr-token
+            key: token
+          labels:
+            - preview # only PRs labeled 'preview' spawn an env
+        requeueAfterSeconds: 60
+  template:
+    metadata:
+      name: 'todo-pr-{{.number}}'
+    spec:
+      project: default
+      source:
+        repoURL: https://github.com/nickhstr/todo-rust.git
+        targetRevision: '{{.head_sha}}'
+        path: deploy/argocd/manifests/todo-app/overlays/preview
+        kustomize:
+          namespace: 'todo-app-pr-{{.number}}'
+          images:
+            - 'todo-app=ghcr.io/nickhstr/todo-app:pr-{{.number}}-{{.head_sha}}'
+          patches:
+            - target:
+                kind: Ingress
+                name: todo-app
+              patch: |-
+                - op: replace
+                  path: /spec/rules/0/host
+                  value: pr-{{.number}}.todo.nickhstr.dev
+                - op: replace
+                  path: /spec/tls/0/hosts/0
+                  value: pr-{{.number}}.todo.nickhstr.dev
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: 'todo-app-pr-{{.number}}'
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - ServerSideApply=true
+          - CreateNamespace=true
