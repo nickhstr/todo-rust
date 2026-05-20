@@ -4,7 +4,7 @@
 use std::time::Duration;
 
 use axum::{
-    http::{header, HeaderName},
+    http::{header, HeaderName, HeaderValue},
     middleware as ax_middleware,
     routing::{delete, get, post},
     Router,
@@ -13,7 +13,8 @@ use metrics_exporter_prometheus::PrometheusHandle;
 use tower_http::{
     catch_panic::CatchPanicLayer, compression::CompressionLayer,
     normalize_path::NormalizePathLayer, sensitive_headers::SetSensitiveRequestHeadersLayer,
-    services::ServeDir, timeout::TimeoutLayer, trace::TraceLayer,
+    services::ServeDir, set_header::SetResponseHeaderLayer, timeout::TimeoutLayer,
+    trace::TraceLayer,
 };
 use tower_sessions_sqlx_store::PostgresStore;
 
@@ -89,6 +90,10 @@ pub fn build_router(
         .nest_service("/static", serve_static)
         .with_state(state)
         .layer(ax_middleware::from_fn(http_metrics_layer))
+        .layer(SetResponseHeaderLayer::if_not_present(
+            header::CACHE_CONTROL,
+            HeaderValue::from_static("private, no-cache"),
+        ))
         .layer(ax_middleware::from_fn(crate::middleware::i18n_middleware))
         .layer(ax_middleware::from_fn(crate::middleware::csp_nonce_middleware))
         .layer(TimeoutLayer::with_status_code(
