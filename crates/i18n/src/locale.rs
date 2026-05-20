@@ -4,7 +4,7 @@
 //!   3. Accept-Language, negotiated against the supported set
 //!   4. `en` fallback
 
-use fluent_langneg::{negotiate_languages, NegotiationStrategy};
+use fluent_langneg::{negotiate_languages, parse_accepted_languages, NegotiationStrategy};
 use unic_langid::{langid, LanguageIdentifier};
 
 /// The locales the app ships translations for.
@@ -45,14 +45,10 @@ fn parse_supported(value: &str) -> Option<LanguageIdentifier> {
 }
 
 fn negotiate_from_accept_language(header: &str) -> Option<LanguageIdentifier> {
-    let requested: Vec<LanguageIdentifier> = header
-        .split(',')
-        .filter_map(|chunk| {
-            // strip ";q=..." weight; we ignore weights and rely on order
-            let tag = chunk.split(';').next()?.trim();
-            tag.parse().ok()
-        })
-        .collect();
+    // `parse_accepted_languages` discards the ";q=..." weights; we rely on
+    // header order for priority, which matches what almost every browser
+    // emits anyway.
+    let requested = parse_accepted_languages(header);
     let available: Vec<LanguageIdentifier> = SUPPORTED
         .iter()
         .map(|s| s.parse().expect("valid SUPPORTED locale"))

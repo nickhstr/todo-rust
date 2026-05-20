@@ -12,6 +12,8 @@ pub const UTC: Tz = time_tz::timezones::db::UTC;
 /// since browsers occasionally encode the value oddly.
 pub fn parse_tz(name: &str) -> Option<Tz> {
     let trimmed = name.trim().trim_start_matches('+');
+    // `find_by_name` does substring matching, so "" would match every entry
+    // and return the first timezone in the db — silent correctness bug.
     if trimmed.is_empty() {
         return None;
     }
