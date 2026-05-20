@@ -39,7 +39,7 @@ eval "expected_sha=\${SHA256_${os}_${arch}}"
 # Cache check: skip download if binary exists and reports the pinned version.
 # Tailwind v4 prints the version on its --help banner.
 if [ -x "$INSTALL_DIR/tailwindcss" ] \
-   && "$INSTALL_DIR/tailwindcss" --help 2>&1 | grep -q "$TAILWIND_VERSION"; then
+   && "$INSTALL_DIR/tailwindcss" --help 2>&1 | grep -qF "$TAILWIND_VERSION"; then
   exit 0
 fi
 
@@ -62,6 +62,8 @@ curl -fL --retry 3 -o "$tmp" "$url" || die "curl failed for $url"
 
 actual_sha=$($sha_cmd "$tmp" | awk '{print $1}')
 if [ "$actual_sha" != "$expected_sha" ]; then
+  trap - EXIT
+  printf 'install-tailwind: partial download preserved at %s for inspection\n' "$tmp" >&2
   die "SHA256 mismatch for ${asset}: expected ${expected_sha}, got ${actual_sha}"
 fi
 
