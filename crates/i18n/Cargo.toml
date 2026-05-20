@@ -18,8 +18,6 @@ time             = { workspace = true }
 time-tz          = { workspace = true }
 icu              = { workspace = true }
 minijinja        = { workspace = true }
-serde            = { workspace = true }
-serde_json       = { workspace = true }
 thiserror        = { workspace = true }
 tracing          = { workspace = true }
 metrics          = { workspace = true }
