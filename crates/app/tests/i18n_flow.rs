@@ -38,10 +38,10 @@ async fn cookie_overrides_accept_language() {
 }
 
 #[tokio::test]
-async fn htmx_switcher_returns_204_and_sets_cookie() {
-    // htmx-driven switcher: the template's hx-on::after:request calls
-    // location.reload() on a 2xx, so the server just needs to confirm
-    // success and set the cookie.
+async fn htmx_switcher_sets_cookie_and_returns_hx_refresh() {
+    // htmx-driven switcher: server returns 204 + HX-Refresh: true; the
+    // generic HX-* response header parser in htmx 4 maps this onto
+    // ctx.hx.refresh and dispatches location.reload().
     let server = common::spawn().await;
     let res = server
         .client
@@ -54,6 +54,8 @@ async fn htmx_switcher_returns_204_and_sets_cookie() {
     assert_eq!(res.status(), 204);
     let set_cookie = res.headers().get("set-cookie").unwrap().to_str().unwrap();
     assert!(set_cookie.starts_with("locale=de"));
+    let hx_refresh = res.headers().get("hx-refresh").unwrap().to_str().unwrap();
+    assert_eq!(hx_refresh, "true");
 }
 
 #[tokio::test]

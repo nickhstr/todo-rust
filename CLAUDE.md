@@ -63,7 +63,9 @@ Key differences from htmx 1/2:
 | `event.detail.successful` | **removed** | Use `hx-on::after:swap` instead (only fires on success) |
 | `event.detail.xhr` | `event.detail.ctx.response` | Response object moved under `ctx` |
 
-**Response headers** are NOT all handled — verified against the vendored source, htmx 4 beta3 only recognizes the request-context headers (`HX-Boosted`, `HX-Current-URL`, `HX-History-Restore-Request`, `HX-Request`, `HX-Request-Type`, `HX-Source`, `HX-Target`). **`HX-Refresh`, `HX-Redirect`, `HX-Retarget`, and `HX-Reswap` are silently dropped.** If you need to make htmx reload the page after a POST, return a 303 + `Location` and have the form submit be a plain `<form>` (the browser follows the redirect). The language switcher in `templates/base.html` is the worked example.
+**Response headers** are parsed generically — every response header that starts with `hx-` is lowercased and copied onto `ctx.hx.<name>` (the `-` to nothing replacement is done by htmx). The dispatcher then checks `ctx.hx.trigger`, `ctx.hx.refresh`, `ctx.hx.redirect`, `ctx.hx.location`, `ctx.hx.retarget`, `ctx.hx.reswap`, `ctx.hx.reselect` — so `HX-Refresh: true`, `HX-Redirect: /foo`, `HX-Trigger: myEvent`, etc. all work the way the docs at `four.htmx.org/reference/headers/*` describe. The language switcher in `templates/base.html` uses `HX-Refresh` to trigger a full reload after the locale cookie is written.
+
+The naming is NOT keyed on literal header names in the JS — searches for `"HX-Refresh"` etc. in the vendored minified source come back empty. That doesn't mean unsupported; verify by searching for `ctx.hx.<name>` or `e.hx.<name>`.
 
 **Swap spec modifiers** (`swap:200ms`, `settle:100ms`) still work — `parseInterval` handles `ms`/`s`/`m` suffixes.
 

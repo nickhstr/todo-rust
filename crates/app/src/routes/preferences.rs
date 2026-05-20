@@ -20,10 +20,10 @@ pub struct UpdateLocale {
 /// Writes the `locale` cookie and (for authenticated users) persists
 /// it to `users.locale`.
 ///
-/// htmx callers (identified by `HX-Request`) get a 204 No Content;
-/// they fire `location.reload()` themselves via `hx-on::after:request`
-/// — htmx 4 beta3 doesn't parse `HX-Refresh`/`HX-Redirect` response
-/// headers, so the reload is wired in the template.
+/// htmx callers (identified by `HX-Request`) get a 204 No Content +
+/// `HX-Refresh: true`. htmx 4 reads the header generically (every
+/// `HX-*` response header lands on `ctx.hx.<name>`) and dispatches
+/// `location.reload()` when `ctx.hx.refresh === "true"`.
 ///
 /// Plain form posts (the `<noscript>` fallback, or anyone hitting the
 /// endpoint without htmx) get a classic 303 to Referer so the browser
@@ -60,6 +60,7 @@ pub async fn update_locale(
     headers.insert(header::SET_COOKIE, cookie.parse().expect("valid cookie"));
 
     if request_headers.get("HX-Request").is_some() {
+        headers.insert("HX-Refresh", "true".parse().expect("valid header"));
         Ok((StatusCode::NO_CONTENT, headers).into_response())
     } else {
         let target = request_headers
