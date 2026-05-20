@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}The Day's Entries — Quiet Ledger{% endblock %}
+{% block title %}{{ t("index-page-title") }}{% endblock %}
 
 {% block content %}
 <section class="measure"
@@ -8,16 +8,15 @@
 
   {# ---------- Page heading ---------- #}
   <div class="anim-fade-up" style="animation-delay: 40ms;">
-    <p class="eyebrow">An entry for {{ "the day" }}</p>
+    <p class="eyebrow">{{ t("index-eyebrow") }}</p>
     <h1 class="mt-3 text-[2.5rem] sm:text-[3rem] leading-[1.05]" style="font-weight: 400;">
-      The day,<br>
+      {{ t("index-heading") }}<br>
       <em class="not-italic" style="color: var(--color-vermillion); font-weight: 500;">
-        in intentions.
+        {{ t("index-heading-em") }}
       </em>
     </h1>
     <p class="mt-5 max-w-[36rem]" style="color: var(--color-ink-soft);">
-      A quiet place to set down what wants doing &mdash; one line at a time, no
-      ceremony, no notifications.
+      {{ t("index-intro") }}
     </p>
   </div>
 
@@ -27,7 +26,7 @@
         hx-target="#todo-list"
         hx-swap="afterbegin"
         hx-on::after:swap="this.reset(); this.querySelector('input[name=title]').focus();">
-    <label for="new-todo" class="field-label">New entry</label>
+    <label for="new-todo" class="field-label">{{ t("new-entry-label") }}</label>
     <div class="flex items-end gap-3">
       <input
         id="new-todo"
@@ -38,35 +37,35 @@
         maxlength="280"
         autocomplete="off"
         spellcheck="true"
-        placeholder="Write the next thing&hellip;"
+        placeholder="{{ t('new-entry-placeholder') }}"
         class="field flex-1">
-      <button type="submit" class="btn btn-primary shrink-0" aria-label="Add entry">
-        Inscribe
+      <button type="submit" class="btn btn-primary shrink-0" aria-label="{{ t('new-entry-submit') }}">
+        {{ t("new-entry-submit") }}
       </button>
     </div>
     <p class="mt-2 flex items-center justify-between">
-      <span class="eyebrow">Enter to commit</span>
-      <span class="submit-spinner" aria-live="polite">Inscribing&hellip;</span>
+      <span class="eyebrow">{{ t("new-entry-hint") }}</span>
+      <span class="submit-spinner" aria-live="polite">{{ t("new-entry-spinner") }}</span>
     </p>
   </form>
 
   {# ---------- Filter tabs ---------- #}
   <div class="mt-14 anim-fade-up" style="animation-delay: 220ms;">
     <div class="flex items-center justify-between gap-4 mb-3">
-      <p class="eyebrow">The ledger</p>
-      <div role="tablist" aria-label="Filter entries" class="flex items-center gap-6">
+      <p class="eyebrow">{{ t("ledger-label") }}</p>
+      <div role="tablist" aria-label="{{ t('filter-aria') }}" class="flex items-center gap-6">
         <button type="button" role="tab" class="tab"
                 :aria-pressed="filter === 'all'"
                 @click="filter = 'all'"
-                aria-pressed="true">All</button>
+                aria-pressed="true">{{ t("filter-all") }}</button>
         <button type="button" role="tab" class="tab"
                 :aria-pressed="filter === 'active'"
                 @click="filter = 'active'"
-                aria-pressed="false">Open</button>
+                aria-pressed="false">{{ t("filter-active") }}</button>
         <button type="button" role="tab" class="tab"
                 :aria-pressed="filter === 'done'"
                 @click="filter = 'done'"
-                aria-pressed="false">Done</button>
+                aria-pressed="false">{{ t("filter-done") }}</button>
       </div>
     </div>
     <hr class="rule-double">
@@ -84,7 +83,7 @@
     {# Sibling of #todo-list (not inside it) so htmx swaps into the <ul> don't
        touch this node. Visibility is CSS-only via :has() on #todo-list. #}
     <p class="empty-state" data-when="all">
-      The page is blank.<br>Begin with one small intention.
+      {{ t("empty-state-one") }}<br>{{ t("empty-state-two") }}
     </p>
   </div>
 
