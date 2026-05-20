@@ -137,9 +137,21 @@ impl UserRepository {
         // so we need a sentinel that lets us express "set to NULL" differently.
         // We use a three-value approach via two boolean flags.
         let set_locale = locale.is_some();
-        let locale_val: Option<String> = locale.and_then(|s| if s.is_empty() { None } else { Some(s.to_owned()) });
+        let locale_val: Option<String> = locale.and_then(|s| {
+            if s.is_empty() {
+                None
+            } else {
+                Some(s.to_owned())
+            }
+        });
         let set_timezone = timezone.is_some();
-        let timezone_val: Option<String> = timezone.and_then(|s| if s.is_empty() { None } else { Some(s.to_owned()) });
+        let timezone_val: Option<String> = timezone.and_then(|s| {
+            if s.is_empty() {
+                None
+            } else {
+                Some(s.to_owned())
+            }
+        });
 
         sqlx::query(
             "UPDATE users \
@@ -163,8 +175,8 @@ fn row_to_user(row: &sqlx::postgres::PgRow) -> User {
     let email: String = row.get("email");
     let password_hash: String = row.get("password_hash");
     let created_at: OffsetDateTime = row.get("created_at");
-    let locale: Option<String> = row.try_get("locale").ok().flatten();
-    let timezone: Option<String> = row.try_get("timezone").ok().flatten();
+    let locale: Option<String> = row.get("locale");
+    let timezone: Option<String> = row.get("timezone");
     User {
         id: UserId(id),
         email,

@@ -192,6 +192,12 @@ async fn update_preferences_persists_and_clears() {
     let reloaded = users.find_by_id(user.id).await.unwrap().unwrap();
     assert_eq!(reloaded.locale, None);
     assert_eq!(reloaded.timezone.as_deref(), Some("America/Los_Angeles"));
+
+    // both None: skip — neither column should change.
+    users.update_preferences(user.id, None, None).await.unwrap();
+    let reloaded = users.find_by_id(user.id).await.unwrap().unwrap();
+    assert_eq!(reloaded.locale, None);
+    assert_eq!(reloaded.timezone.as_deref(), Some("America/Los_Angeles"));
 }
 
 #[tokio::test]
