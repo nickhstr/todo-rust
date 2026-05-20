@@ -81,7 +81,17 @@ pub fn build_router(
     #[cfg(debug_assertions)]
     let api = api.route("/dev/login", post(crate::routes::dev::auto_login));
 
-    let api = api.layer(auth_layer);
+    // i18n + CSP nonce only run on routes that actually render HTML.
+    // `/static/*` and the health endpoints don't need locale extraction
+    // or per-request CSP nonces, so scope these layers to `api` rather
+    // than the merged router. Saves an RNG draw + Cookie parse per
+    // static asset request.
+    let api = api
+        .layer(auth_layer)
+        .layer(ax_middleware::from_fn(crate::middleware::i18n_middleware))
+        .layer(ax_middleware::from_fn(
+            crate::middleware::csp_nonce_middleware,
+        ));
 
     let health = health_routes::router(prom);
 
@@ -139,10 +149,6 @@ pub fn build_router(
         .layer(SetResponseHeaderLayer::if_not_present(
             header::CACHE_CONTROL,
             HeaderValue::from_static("private, no-cache"),
-        ))
-        .layer(ax_middleware::from_fn(crate::middleware::i18n_middleware))
-        .layer(ax_middleware::from_fn(
-            crate::middleware::csp_nonce_middleware,
         ))
         .layer(TimeoutLayer::with_status_code(
             axum::http::StatusCode::REQUEST_TIMEOUT,
