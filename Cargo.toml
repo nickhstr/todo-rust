@@ -118,11 +118,11 @@ sha2   = "0.10"
 base64 = "0.22"
 
 # Internal crates
-todo-domain        = { path = "crates/domain" }
-todo-storage       = { path = "crates/storage" }
-todo-observability = { path = "crates/observability" }
-todo-i18n          = { path = "crates/i18n" }
 todo-assets        = { path = "crates/assets" }
+todo-domain        = { path = "crates/domain" }
+todo-i18n          = { path = "crates/i18n" }
+todo-observability = { path = "crates/observability" }
+todo-storage       = { path = "crates/storage" }
 
 [profile.release]
 lto           = "thin"
