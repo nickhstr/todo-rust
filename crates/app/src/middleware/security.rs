@@ -1,36 +1,57 @@
 use axum::{
+    body::Body,
+    extract::Request,
     http::{header, HeaderName, HeaderValue},
+    middleware::Next,
+    response::Response,
     Router,
 };
+use base64::{engine::general_purpose::STANDARD_NO_PAD, Engine as _};
+use rand::RngCore;
 use tower_http::set_header::SetResponseHeaderLayer;
 
-// Scripts ship vendored under /static/vendor/. `'unsafe-eval'` is required
-// because Alpine.js compiles each directive expression (`x-data`, `@click`,
-// `x-show`, ...) at runtime, and htmx 4's `hx-on::*` attributes do the same.
-// We deliberately do NOT add `'unsafe-inline'` to script-src, so an injected
-// inline `<script>` is still blocked.
-// `'unsafe-inline'` on style-src covers `style="..."` attributes in templates.
-const CSP: &str = "default-src 'self'; \
-    script-src 'self' 'unsafe-eval'; \
-    style-src 'self' 'unsafe-inline'; \
-    font-src 'self'; \
-    img-src 'self' data:; \
-    connect-src 'self'";
+/// 128-bit base64 nonce, attached to the request and the response CSP
+/// for the lifetime of one request. Templates pull it from
+/// `Extension<CspNonce>` and emit `nonce="{{ csp_nonce }}"` on inline
+/// `<script>` tags.
+#[derive(Clone, Debug)]
+pub struct CspNonce(pub String);
 
 const PERMISSIONS_POLICY: HeaderName = HeaderName::from_static("permissions-policy");
 
-/// Apply baseline hardening response headers. HSTS only when `cookie_secure`
-/// (i.e. when we're behind TLS); shipping it over plain HTTP would lock users
-/// out for the max-age duration.
+pub async fn csp_nonce_middleware(mut req: Request<Body>, next: Next) -> Response {
+    let mut bytes = [0u8; 16];
+    rand::thread_rng().fill_bytes(&mut bytes);
+    let nonce = STANDARD_NO_PAD.encode(bytes);
+
+    req.extensions_mut().insert(CspNonce(nonce.clone()));
+
+    let mut response = next.run(req).await;
+
+    let csp = format!(
+        "default-src 'self'; \
+         script-src 'self' 'unsafe-eval' 'nonce-{nonce}'; \
+         style-src 'self' 'unsafe-inline'; \
+         font-src 'self'; \
+         img-src 'self' data:; \
+         connect-src 'self'"
+    );
+    if let Ok(value) = HeaderValue::from_str(&csp) {
+        response
+            .headers_mut()
+            .insert(header::CONTENT_SECURITY_POLICY, value);
+    }
+    response
+}
+
+/// Apply the static security headers (everything except CSP) plus HSTS
+/// when behind TLS. CSP is set per-request by `csp_nonce_middleware`
+/// (added by the router) and includes a fresh nonce.
 pub fn apply_security_headers<S>(router: Router<S>, cookie_secure: bool) -> Router<S>
 where
     S: Clone + Send + Sync + 'static,
 {
     let router = router
-        .layer(SetResponseHeaderLayer::if_not_present(
-            header::CONTENT_SECURITY_POLICY,
-            HeaderValue::from_static(CSP),
-        ))
         .layer(SetResponseHeaderLayer::if_not_present(
             header::X_CONTENT_TYPE_OPTIONS,
             HeaderValue::from_static("nosniff"),
@@ -51,5 +72,40 @@ where
         ))
     } else {
         router
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use axum::{routing::get, Extension, Router};
+    use tower::ServiceExt;
+
+    #[tokio::test]
+    async fn each_request_gets_a_unique_nonce() {
+        async fn handler(Extension(nonce): Extension<CspNonce>) -> String {
+            nonce.0
+        }
+        let app = Router::new()
+            .route("/", get(handler))
+            .layer(axum::middleware::from_fn(csp_nonce_middleware));
+
+        let r1 = app
+            .clone()
+            .oneshot(axum::http::Request::builder().uri("/").body(axum::body::Body::empty()).unwrap())
+            .await
+            .unwrap();
+        let r2 = app
+            .clone()
+            .oneshot(axum::http::Request::builder().uri("/").body(axum::body::Body::empty()).unwrap())
+            .await
+            .unwrap();
+
+        let csp1 = r1.headers().get(header::CONTENT_SECURITY_POLICY).unwrap().to_str().unwrap().to_owned();
+        let csp2 = r2.headers().get(header::CONTENT_SECURITY_POLICY).unwrap().to_str().unwrap().to_owned();
+
+        assert!(csp1.contains("nonce-"));
+        assert!(csp2.contains("nonce-"));
+        assert_ne!(csp1, csp2);
     }
 }

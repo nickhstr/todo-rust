@@ -90,6 +90,7 @@ pub fn build_router(
         .with_state(state)
         .layer(ax_middleware::from_fn(http_metrics_layer))
         .layer(ax_middleware::from_fn(crate::middleware::i18n_middleware))
+        .layer(ax_middleware::from_fn(crate::middleware::csp_nonce_middleware))
         .layer(TimeoutLayer::with_status_code(
             axum::http::StatusCode::REQUEST_TIMEOUT,
             Duration::from_secs(30),
