@@ -61,17 +61,13 @@
       </a>
 
       <nav class="flex items-center gap-5" aria-label="{{ t('nav-account') }}">
-        {# Plain HTML form. Alpine fires the native submit() on change so the
-           browser POSTs, follows the 303 to Referer, and reloads in the new
-           locale — htmx 4 beta3 doesn't parse HX-Refresh/HX-Redirect, so we
-           rely on classic web semantics here. CSP forbids inline `onchange`
-           handlers; Alpine's `@change` is compiled via Function() under the
-           existing `'unsafe-eval'` allowance. The noscript button is the
-           fallback for users with JS disabled. #}
-        {# The <form> is the no-JS fallback (the server 303s back to Referer
-           for plain POSTs). When htmx is active, the <select> makes the
-           POST directly and the server's `HX-Refresh: true` response header
-           tells htmx to reload — no client-side reload logic needed. #}
+        {# Language switcher. With JS on, htmx fires the POST when the <select>
+           changes (hx-trigger="change", hx-include="this") and the server's
+           `HX-Refresh: true` response header tells htmx to reload the page.
+           No client-side reload code; htmx 4 dispatches it generically from
+           the HX-* response headers. With JS off, the <noscript> submit
+           button posts the wrapping <form> the classic way and the server
+           303s back to Referer. #}
         <form method="post" action="/preferences/locale" class="inline-flex items-center">
           <label class="sr-only" for="locale-select">{{ t("language-switcher-label") }}</label>
           <select id="locale-select" name="locale" class="lang-switcher"
