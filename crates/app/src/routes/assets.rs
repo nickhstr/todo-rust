@@ -90,3 +90,60 @@ pub fn not_found() -> Response {
         .body(Body::empty())
         .expect("response builder")
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::fs;
+
+    fn write(p: &Path, body: &[u8]) {
+        if let Some(parent) = p.parent() {
+            fs::create_dir_all(parent).unwrap();
+        }
+        fs::write(p, body).unwrap();
+    }
+
+    #[test]
+    fn picks_brotli_when_accepted_and_present() {
+        let dir = tempfile::tempdir().unwrap();
+        let raw = dir.path().join("app.js");
+        write(&raw, b"raw");
+        write(&dir.path().join("app.js.br"), b"compressed-br");
+        write(&dir.path().join("app.js.gz"), b"compressed-gz");
+        let (p, enc) = pick_precompressed(&raw, Some("br, gzip"));
+        assert_eq!(enc, Some("br"));
+        assert!(p.ends_with("app.js.br"));
+    }
+
+    #[test]
+    fn picks_gzip_when_brotli_missing() {
+        let dir = tempfile::tempdir().unwrap();
+        let raw = dir.path().join("app.js");
+        write(&raw, b"raw");
+        write(&dir.path().join("app.js.gz"), b"compressed-gz");
+        let (p, enc) = pick_precompressed(&raw, Some("br, gzip"));
+        assert_eq!(enc, Some("gzip"));
+        assert!(p.ends_with("app.js.gz"));
+    }
+
+    #[test]
+    fn falls_back_to_raw_when_no_siblings() {
+        let dir = tempfile::tempdir().unwrap();
+        let raw = dir.path().join("app.js");
+        write(&raw, b"raw");
+        let (p, enc) = pick_precompressed(&raw, Some("br, gzip"));
+        assert_eq!(enc, None);
+        assert_eq!(p, raw);
+    }
+
+    #[test]
+    fn ignores_unaccepted_encodings() {
+        let dir = tempfile::tempdir().unwrap();
+        let raw = dir.path().join("app.js");
+        write(&raw, b"raw");
+        write(&dir.path().join("app.js.br"), b"br");
+        let (p, enc) = pick_precompressed(&raw, Some("identity"));
+        assert_eq!(enc, None);
+        assert_eq!(p, raw);
+    }
+}
