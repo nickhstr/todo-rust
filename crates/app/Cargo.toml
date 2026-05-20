@@ -18,6 +18,8 @@ path = "src/main.rs"
 todo-domain        = { workspace = true }
 todo-storage       = { workspace = true }
 todo-observability = { workspace = true }
+todo-i18n          = { workspace = true }
+unic-langid        = { workspace = true }
 
 anyhow                      = { workspace = true }
 async-trait                 = { workspace = true }
