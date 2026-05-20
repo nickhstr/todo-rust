@@ -1,3 +1,4 @@
+pub mod assets;
 pub mod auth;
 #[cfg(debug_assertions)]
 pub mod dev;

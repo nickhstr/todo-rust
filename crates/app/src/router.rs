@@ -6,6 +6,7 @@ use std::time::Duration;
 use axum::{
     http::{header, HeaderName, HeaderValue},
     middleware as ax_middleware,
+    response::IntoResponse,
     routing::{delete, get, post},
     Router,
 };
@@ -80,14 +81,51 @@ pub fn build_router(
 
     let health = health_routes::router(prom);
 
-    let serve_static = ServeDir::new(static_dir)
+    // Static service: try the hashed-asset manifest first, fall through to
+    // ServeDir for unhashed paths. The fallthrough ServeDir is wrapped with
+    // a short Cache-Control override (overriding the default private,no-cache
+    // from the router-level layer) so unhashed assets are still cacheable
+    // for ~5 minutes even though they're not content-addressed.
+    use tower::Service as _;
+    let assets_for_static = state.assets.clone();
+    let serve_static_inner = ServeDir::new(static_dir.clone())
         .precompressed_gzip()
         .precompressed_br();
+    let cached_static = tower::ServiceBuilder::new()
+        .layer(SetResponseHeaderLayer::overriding(
+            header::CACHE_CONTROL,
+            HeaderValue::from_static("public, max-age=300"),
+        ))
+        .service(serve_static_inner);
+    let static_service = tower::service_fn(move |req: axum::extract::Request| {
+        let assets = assets_for_static.clone();
+        let mut cached_static = cached_static.clone();
+        async move {
+            let path = req.uri().path().trim_start_matches('/').to_owned();
+            // url_path will be like "css/app.<hash>.css" (the leading "/static/"
+            // was already stripped by nest_service before delegating to us)
+            if let Some(on_disk) = assets.resolve_hashed_request(&path) {
+                match crate::routes::assets::serve_immutable_file(&on_disk).await {
+                    Ok(r) => Ok::<_, std::convert::Infallible>(r),
+                    Err(_) => Ok(crate::routes::assets::not_found()),
+                }
+            } else {
+                // Pass through to ServeDir. ServeDir is always ready so we
+                // call it directly — skipping `.ready()` avoids a type
+                // ambiguity the compiler can't resolve without an explicit
+                // turbofish for the request-body type.
+                match cached_static.call(req).await {
+                    Ok(r) => Ok::<_, std::convert::Infallible>(r.into_response()),
+                    Err(e) => match e {},
+                }
+            }
+        }
+    });
 
     let merged = Router::new()
         .merge(api)
         .merge(health)
-        .nest_service("/static", serve_static)
+        .nest_service("/static", static_service)
         .with_state(state)
         .layer(ax_middleware::from_fn(http_metrics_layer))
         .layer(SetResponseHeaderLayer::if_not_present(

@@ -55,6 +55,10 @@ tracing                     = { workspace = true }
 uuid                        = { workspace = true }
 validator                   = { workspace = true }
 
+mime       = "0.3"
+mime_guess = "2.0"
+tokio-util = { version = "0.7", features = ["io"] }
+
 [dev-dependencies]
 # `hex` is already a non-dev dep; dev-deps below are the test-only additions.
 reqwest                = { workspace = true }
