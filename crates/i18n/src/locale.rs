@@ -28,9 +28,9 @@ pub fn negotiate(
         return c;
     }
     if let Some(al) = accept_lang {
-        if let Some(matched) = negotiate_from_accept_language(al) {
-            return matched;
-        }
+        // `negotiate_languages` with a default in the available set always
+        // returns at least the default, so this branch never falls through.
+        return negotiate_from_accept_language(al);
     }
     default_locale()
 }
@@ -44,7 +44,7 @@ fn parse_supported(value: &str) -> Option<LanguageIdentifier> {
     }
 }
 
-fn negotiate_from_accept_language(header: &str) -> Option<LanguageIdentifier> {
+fn negotiate_from_accept_language(header: &str) -> LanguageIdentifier {
     // `parse_accepted_languages` discards the ";q=..." weights; we rely on
     // header order for priority, which matches what almost every browser
     // emits anyway.
@@ -60,7 +60,12 @@ fn negotiate_from_accept_language(header: &str) -> Option<LanguageIdentifier> {
         Some(&default),
         NegotiationStrategy::Filtering,
     );
-    chosen.into_iter().next().cloned()
+    // `chosen` always contains at least `default` because we passed `Some(&default)`.
+    chosen
+        .into_iter()
+        .next()
+        .cloned()
+        .unwrap_or_else(default_locale)
 }
 
 #[cfg(test)]

@@ -57,9 +57,12 @@ impl Locales {
             key = id,
             "i18n: missing message id; rendering literal"
         );
+        // Bound to language subtag for the same reason the request
+        // counter does (see middleware/i18n.rs): cookie/profile values
+        // may carry region tags like `en-US` that would otherwise leak.
         metrics::counter!(
             "i18n_missing_key_total",
-            "locale" => locale.to_string(),
+            "locale" => locale.language.as_str().to_owned(),
             "key" => id.to_owned(),
         )
         .increment(1);
