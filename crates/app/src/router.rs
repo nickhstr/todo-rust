@@ -25,7 +25,10 @@ use crate::{
         apply_security_headers, apply_version_header, http_metrics_layer, make_request_id_layers,
         rate_limit_middleware, RateLimiter,
     },
-    routes::{auth as auth_routes, health as health_routes, pages, todos as todo_routes},
+    routes::{
+        auth as auth_routes, health as health_routes, pages, preferences as pref_routes,
+        todos as todo_routes,
+    },
     AppState,
 };
 
@@ -69,6 +72,7 @@ pub fn build_router(
         .route("/todos", get(todo_routes::list).post(todo_routes::create))
         .route("/todos/:id/toggle", post(todo_routes::toggle))
         .route("/todos/:id", delete(todo_routes::delete))
+        .route("/preferences/locale", post(pref_routes::update_locale))
         .merge(auth_endpoints);
 
     // Dev-only passwordless login. The route is compiled out of `--release`

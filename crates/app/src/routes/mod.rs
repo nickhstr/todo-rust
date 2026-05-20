@@ -4,4 +4,5 @@ pub mod auth;
 pub mod dev;
 pub mod health;
 pub mod pages;
+pub mod preferences;
 pub mod todos;
