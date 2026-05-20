@@ -6,7 +6,7 @@ use axum::{
     response::Response,
     Router,
 };
-use base64::{engine::general_purpose::STANDARD_NO_PAD, Engine as _};
+use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine as _};
 use rand::RngCore;
 use tower_http::set_header::SetResponseHeaderLayer;
 
@@ -22,7 +22,10 @@ const PERMISSIONS_POLICY: HeaderName = HeaderName::from_static("permissions-poli
 pub async fn csp_nonce_middleware(mut req: Request<Body>, next: Next) -> Response {
     let mut bytes = [0u8; 16];
     rand::thread_rng().fill_bytes(&mut bytes);
-    let nonce = STANDARD_NO_PAD.encode(bytes);
+    // URL-safe alphabet avoids '/' which minijinja's HTML attribute escape
+    // would rewrite to `&#x2f;` in the rendered nonce — breaking any
+    // assertion or browser comparison that uses the raw CSP value.
+    let nonce = URL_SAFE_NO_PAD.encode(bytes);
 
     req.extensions_mut().insert(CspNonce(nonce.clone()));
 
@@ -92,17 +95,39 @@ mod tests {
 
         let r1 = app
             .clone()
-            .oneshot(axum::http::Request::builder().uri("/").body(axum::body::Body::empty()).unwrap())
+            .oneshot(
+                axum::http::Request::builder()
+                    .uri("/")
+                    .body(axum::body::Body::empty())
+                    .unwrap(),
+            )
             .await
             .unwrap();
         let r2 = app
             .clone()
-            .oneshot(axum::http::Request::builder().uri("/").body(axum::body::Body::empty()).unwrap())
+            .oneshot(
+                axum::http::Request::builder()
+                    .uri("/")
+                    .body(axum::body::Body::empty())
+                    .unwrap(),
+            )
             .await
             .unwrap();
 
-        let csp1 = r1.headers().get(header::CONTENT_SECURITY_POLICY).unwrap().to_str().unwrap().to_owned();
-        let csp2 = r2.headers().get(header::CONTENT_SECURITY_POLICY).unwrap().to_str().unwrap().to_owned();
+        let csp1 = r1
+            .headers()
+            .get(header::CONTENT_SECURITY_POLICY)
+            .unwrap()
+            .to_str()
+            .unwrap()
+            .to_owned();
+        let csp2 = r2
+            .headers()
+            .get(header::CONTENT_SECURITY_POLICY)
+            .unwrap()
+            .to_str()
+            .unwrap()
+            .to_owned();
 
         assert!(csp1.contains("nonce-"));
         assert!(csp2.contains("nonce-"));
