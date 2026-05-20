@@ -41,6 +41,7 @@ pub struct User {
     pub email: String,
     #[serde(skip_serializing)]
     pub password_hash: String,
+    #[serde(with = "time::serde::rfc3339")]
     pub created_at: OffsetDateTime,
     #[serde(default)]
     pub locale: Option<String>,
