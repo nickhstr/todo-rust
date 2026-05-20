@@ -1,5 +1,8 @@
 @import "tailwindcss";
 
+@source "../../templates";
+@source "../../crates";
+
 /* =============================================================
    Editorial todo — design tokens (Tailwind v4 CSS-first config)
    ============================================================= */
