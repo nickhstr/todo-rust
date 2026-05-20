@@ -24,8 +24,5 @@ thiserror        = { workspace = true }
 tracing          = { workspace = true }
 metrics          = { workspace = true }
 
-# Internal crates (transient — removed in Task 4 once the asset() helper moves out).
-todo-assets = { workspace = true }
-
 [dev-dependencies]
 tempfile = { workspace = true }

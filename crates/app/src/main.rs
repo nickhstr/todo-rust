@@ -76,15 +76,14 @@ async fn main() -> anyhow::Result<()> {
         )
     };
 
-    let helpers = todo_i18n::minijinja_helpers::Helpers {
-        locales: locales.clone(),
-        assets: assets.clone(),
-    };
-
     let templates = if config.template_autoreload {
-        Templates::dev(config.templates_dir.clone(), helpers)
+        Templates::dev(
+            config.templates_dir.clone(),
+            locales.clone(),
+            assets.clone(),
+        )
     } else {
-        Templates::production(&config.templates_dir, helpers)
+        Templates::production(&config.templates_dir, locales.clone(), assets.clone())
     };
 
     let state = AppState::new(

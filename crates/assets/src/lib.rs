@@ -3,5 +3,6 @@
 //! static files and to serve those hashed URLs.
 
 pub mod manifest;
+pub mod minijinja;
 
 pub use manifest::{Assets, AssetsError};
