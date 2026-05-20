@@ -12,10 +12,12 @@ run-once:
     cargo run --bin todo-app
 
 css:
-    npm run watch
+    ./scripts/install-tailwind.sh
+    ./bin/tailwindcss -i ./static/css/app.src.css -o ./static/css/app.css --watch=always
 
 css-build:
-    npm run build
+    ./scripts/install-tailwind.sh
+    ./bin/tailwindcss -i ./static/css/app.src.css -o ./static/css/app.css --minify
 
 fmt:
     cargo fmt --all
@@ -150,10 +152,9 @@ init-env:
 
 # --- Maintenance ---
 
-# Bump every dep across both lockfiles. Run `just check` after.
+# Bump every dep. Run `just check` after.
 update:
     cargo update
-    npm update
 
 # Pre-compress vendor files for ServeDir's precompressed_gzip/br paths.
 # Run this after vendoring new versions of htmx / alpine.
