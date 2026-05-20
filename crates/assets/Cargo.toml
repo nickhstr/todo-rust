@@ -1,0 +1,17 @@
+[package]
+name         = "todo-assets"
+version      = "0.1.0"
+edition      = { workspace = true }
+rust-version = { workspace = true }
+license      = { workspace = true }
+publish      = { workspace = true }
+
+[lints]
+
+[dependencies]
+sha2      = { workspace = true }
+minijinja = { workspace = true }
+thiserror = { workspace = true }
+
+[dev-dependencies]
+tempfile = { workspace = true }

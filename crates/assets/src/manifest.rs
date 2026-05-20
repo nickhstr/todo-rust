@@ -102,13 +102,22 @@ fn walk_files(
 }
 
 fn hash_file(path: &Path) -> std::io::Result<String> {
-    let bytes = std::fs::read(path)?;
+    use std::io::Read;
+    let mut file = std::fs::File::open(path)?;
     let mut hasher = Sha256::new();
-    hasher.update(&bytes);
-    let digest = hasher.finalize();
+    // Stream in 8 KB chunks so a multi-MB static file (video, large font,
+    // etc.) doesn't allocate its full size in memory at startup.
+    let mut buf = [0u8; 8192];
+    loop {
+        let n = file.read(&mut buf)?;
+        if n == 0 {
+            break;
+        }
+        hasher.update(&buf[..n]);
+    }
     // First 8 hex chars is plenty for cache busting; collision risk is
     // negligible at the file counts we care about.
-    Ok(hex_short(&digest[..]))
+    Ok(hex_short(&hasher.finalize()[..]))
 }
 
 fn hex_short(bytes: &[u8]) -> String {
@@ -192,5 +201,25 @@ mod tests {
         assert!(manifest.contains_key("js/app.js"));
         assert!(!manifest.contains_key("js/app.js.gz"));
         assert!(!manifest.contains_key("js/app.js.br"));
+    }
+
+    #[test]
+    fn streams_files_larger_than_the_read_buffer() {
+        // Exercises the multi-chunk read path in hash_file (8 KB buffer).
+        // A 20 KB body forces three read() calls and proves the streaming
+        // hash matches a one-shot hash of the same content.
+        let dir = tempfile::tempdir().unwrap();
+        let body = vec![b'a'; 20 * 1024];
+        write(&dir.path().join("big.css"), &body);
+
+        let a = Assets::production(dir.path().to_path_buf()).unwrap();
+        let resolved = a.resolve("big.css");
+
+        let digest = Sha256::digest(&body);
+        let expected = format!(
+            "{:02x}{:02x}{:02x}{:02x}",
+            digest[0], digest[1], digest[2], digest[3]
+        );
+        assert_eq!(resolved, format!("big.{expected}.css"));
     }
 }

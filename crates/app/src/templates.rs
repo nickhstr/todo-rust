@@ -4,7 +4,8 @@ use axum::response::Html;
 use minijinja::{path_loader, value::Value, Environment};
 use minijinja_autoreload::AutoReloader;
 use serde::Serialize;
-use todo_i18n::minijinja_helpers::{register, Helpers};
+use todo_assets::Assets;
+use todo_i18n::Locales;
 
 use crate::error::AppError;
 
@@ -17,21 +18,25 @@ pub enum Templates {
 }
 
 impl Templates {
-    pub fn production(dir: &PathBuf, helpers: Helpers) -> Self {
+    pub fn production(dir: &PathBuf, locales: Locales, assets: Arc<Assets>) -> Self {
         let mut env = Environment::new();
         env.set_loader(path_loader(dir));
-        register(&mut env, helpers);
+        todo_i18n::minijinja::register(&mut env, locales);
+        todo_assets::minijinja::register(&mut env, assets);
         Self::Static(Arc::new(env))
     }
 
-    pub fn dev(dir: PathBuf, helpers: Helpers) -> Self {
-        let helpers_for_reload = helpers.clone();
+    pub fn dev(dir: PathBuf, locales: Locales, assets: Arc<Assets>) -> Self {
+        let locales_for_reload = locales.clone();
+        let assets_for_reload = assets.clone();
         let reloader = AutoReloader::new(move |notifier| {
             let dir = dir.clone();
-            let helpers = helpers_for_reload.clone();
+            let locales = locales_for_reload.clone();
+            let assets = assets_for_reload.clone();
             let mut env = Environment::new();
             env.set_loader(path_loader(&dir));
-            register(&mut env, helpers);
+            todo_i18n::minijinja::register(&mut env, locales);
+            todo_assets::minijinja::register(&mut env, assets);
             notifier.watch_path(&dir, true);
             Ok(env)
         });

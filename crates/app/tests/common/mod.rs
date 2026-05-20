@@ -10,7 +10,6 @@ use time::Duration as TimeDuration;
 use todo_app::{
     auth::AuthBackend, build_router, cache::Cache, templates::Templates, AppState, Config,
 };
-use todo_i18n::minijinja_helpers::Helpers;
 use todo_observability::install_metrics_recorder;
 use todo_storage::{pool::build_pool, run_migrations};
 use tokio::{net::TcpListener, task::JoinHandle};
@@ -73,13 +72,9 @@ pub async fn spawn_with(configure: impl FnOnce(&mut Config)) -> TestServer {
         .unwrap()
         .join("locales");
     let locales = todo_i18n::Locales::from_dir(locales_dir).expect("load locales");
-    let assets = std::sync::Arc::new(todo_i18n::Assets::dev(cfg.static_dir.clone()));
-    let helpers = Helpers {
-        locales: locales.clone(),
-        assets: assets.clone(),
-    };
+    let assets = std::sync::Arc::new(todo_assets::Assets::dev(cfg.static_dir.clone()));
 
-    let templates = Templates::production(&cfg.templates_dir, helpers);
+    let templates = Templates::production(&cfg.templates_dir, locales.clone(), assets.clone());
     let cache = Cache::disabled();
     let state = AppState::new(
         Arc::new(cfg.clone()),

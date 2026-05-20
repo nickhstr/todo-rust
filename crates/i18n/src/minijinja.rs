@@ -1,8 +1,8 @@
-//! Minijinja globals: `t(id, **kwargs)`, `datetime(value, style)`, and
-//! `asset(logical)`. The globals read shared state via closures so the
-//! Environment only has to be set up once.
+//! Minijinja globals: `t(id, **kwargs)` and `datetime(value, style)`.
+//! The globals read shared state via closures so the Environment only has
+//! to be set up once.
 
-use std::{borrow::Cow, sync::Arc};
+use std::borrow::Cow;
 
 use fluent_templates::fluent_bundle::FluentValue;
 use minijinja::{value::Value, Environment, Error as JinjaError, ErrorKind};
@@ -10,26 +10,23 @@ use time::OffsetDateTime;
 use unic_langid::{langid, LanguageIdentifier};
 
 use crate::{
-    assets::Assets,
     datetime::{format_datetime, DateTimeStyle},
     messages::{FluentArgs, Locales},
     tz::{Tz, UTC},
 };
 
-#[derive(Clone)]
-pub struct Helpers {
-    pub locales: Locales,
-    pub assets: Arc<Assets>,
-}
-
-pub fn register(env: &mut Environment<'static>, helpers: Helpers) {
-    let locales = helpers.locales.clone();
+pub fn register(env: &mut Environment<'static>, locales: Locales) {
+    let locales_for_t = locales.clone();
     env.add_function(
         "t",
         move |state: &minijinja::State<'_, '_>, id: String, kwargs: minijinja::value::Kwargs| {
             let locale = current_locale(state);
             let args = kwargs_to_args(&kwargs);
-            Ok::<_, JinjaError>(Value::from(locales.lookup(&locale, &id, args.as_ref())))
+            Ok::<_, JinjaError>(Value::from(locales_for_t.lookup(
+                &locale,
+                &id,
+                args.as_ref(),
+            )))
         },
     );
 
@@ -57,12 +54,6 @@ pub fn register(env: &mut Environment<'static>, helpers: Helpers) {
             Ok(Value::from_safe_string(html))
         },
     );
-
-    let assets = helpers.assets.clone();
-    env.add_function("asset", move |logical: String| {
-        let resolved = assets.resolve(&logical);
-        Ok::<_, JinjaError>(Value::from(format!("/static/{}", resolved)))
-    });
 }
 
 fn current_locale(state: &minijinja::State<'_, '_>) -> LanguageIdentifier {
@@ -168,9 +159,8 @@ mod tests {
 
     fn build_env() -> Environment<'static> {
         let locales = Locales::from_dir(locales_dir()).unwrap();
-        let assets = Arc::new(Assets::dev(PathBuf::from(".")));
         let mut env = Environment::new();
-        register(&mut env, Helpers { locales, assets });
+        register(&mut env, locales);
         env
     }
 
@@ -203,19 +193,6 @@ mod tests {
         assert!(out.starts_with("<time datetime=\"2026-05-19T20:00:00Z\""));
         assert!(out.contains("data-style=\"medium\""));
         assert!(out.contains("2026"));
-    }
-
-    #[test]
-    fn asset_helper_prepends_static_prefix() {
-        let mut env = build_env();
-        env.add_template("test.txt", "{{ asset('css/app.css') }}")
-            .unwrap();
-        let out = env
-            .get_template("test.txt")
-            .unwrap()
-            .render(context! {})
-            .unwrap();
-        assert_eq!(out, "/static/css/app.css");
     }
 
     #[test]

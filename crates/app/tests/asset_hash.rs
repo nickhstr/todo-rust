@@ -3,7 +3,7 @@ mod common;
 #[tokio::test]
 async fn login_page_references_static_css() {
     // The test harness uses Assets::dev() so asset() returns raw paths.
-    // Production hashing is exercised in i18n::assets::tests unit tests.
+    // Production hashing is exercised in todo_assets::manifest::tests unit tests.
     let server = common::spawn().await;
     let body = server
         .client

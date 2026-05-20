@@ -15,6 +15,7 @@ name = "todo-app"
 path = "src/main.rs"
 
 [dependencies]
+todo-assets        = { workspace = true }
 todo-domain        = { workspace = true }
 todo-storage       = { workspace = true }
 todo-observability = { workspace = true }

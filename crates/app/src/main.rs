@@ -68,23 +68,22 @@ async fn main() -> anyhow::Result<()> {
         .map_err(|e| anyhow::anyhow!("load locales: {e}"))?;
 
     let assets = if config.template_autoreload {
-        Arc::new(todo_i18n::Assets::dev(config.static_dir.clone()))
+        Arc::new(todo_assets::Assets::dev(config.static_dir.clone()))
     } else {
         Arc::new(
-            todo_i18n::Assets::production(config.static_dir.clone())
+            todo_assets::Assets::production(config.static_dir.clone())
                 .map_err(|e| anyhow::anyhow!("scan static dir: {e}"))?,
         )
     };
 
-    let helpers = todo_i18n::minijinja_helpers::Helpers {
-        locales: locales.clone(),
-        assets: assets.clone(),
-    };
-
     let templates = if config.template_autoreload {
-        Templates::dev(config.templates_dir.clone(), helpers)
+        Templates::dev(
+            config.templates_dir.clone(),
+            locales.clone(),
+            assets.clone(),
+        )
     } else {
-        Templates::production(&config.templates_dir, helpers)
+        Templates::production(&config.templates_dir, locales.clone(), assets.clone())
     };
 
     let state = AppState::new(
