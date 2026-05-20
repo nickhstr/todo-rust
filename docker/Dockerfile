@@ -46,6 +46,7 @@ RUN INSTALL_DIR=/usr/local/bin sh /tmp/install-tailwind.sh
 FROM css-builder AS css
 COPY templates ./templates
 COPY static ./static
+COPY crates ./crates
 RUN tailwindcss -i ./static/css/app.src.css -o ./static/css/app.css --minify
 
 # -----------------------------------------------------------------------------
