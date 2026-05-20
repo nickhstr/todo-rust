@@ -30,16 +30,24 @@ ENV SQLX_OFFLINE=true GIT_SHA=$GIT_SHA
 RUN cargo build --release --bin todo-app
 
 # -----------------------------------------------------------------------------
-# 4. Tailwind CSS build
+# 4a. Tailwind binary (cacheable: rebuilt only when the script or version changes)
 # -----------------------------------------------------------------------------
-FROM node:24-bookworm-slim AS css
+FROM debian:bookworm-slim AS css-builder
 WORKDIR /app
-COPY package.json ./
-RUN npm install --no-audit --no-fund
-COPY tailwind.config.js* ./
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends ca-certificates curl \
+ && rm -rf /var/lib/apt/lists/*
+COPY scripts/install-tailwind.sh /tmp/install-tailwind.sh
+RUN INSTALL_DIR=/usr/local/bin sh /tmp/install-tailwind.sh
+
+# -----------------------------------------------------------------------------
+# 4b. Tailwind CSS build
+# -----------------------------------------------------------------------------
+FROM css-builder AS css
 COPY templates ./templates
 COPY static ./static
-RUN npm run build
+COPY crates ./crates
+RUN tailwindcss -i ./static/css/app.src.css -o ./static/css/app.css --minify
 
 # -----------------------------------------------------------------------------
 # 5. Runtime: distroless cc (sqlx with runtime-tokio-rustls needs glibc).

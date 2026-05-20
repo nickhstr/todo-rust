@@ -54,17 +54,16 @@ just up
 This uses `docker/compose.dev.yaml` as an override. What you get:
 
 - `cargo-watch --poll` running inside the app container; edit a `.rs` file, the binary rebuilds and `systemfd` hands the listening socket to the new process (zero-downtime port).
-- A `tailwind` container running a 1s mtime-polling loop that calls the one-shot `tailwindcss` CLI whenever `static/css/app.src.css` or any file under `templates/` changes.
+- A `tailwind` container running a 1s mtime-polling loop that calls the standalone `tailwindcss` v4 binary whenever `static/css/app.src.css` or any file under `templates/` changes.
 - `minijinja-autoreload` with `fast_reload(false)` in dev, so template edits show up on the next request without a server restart.
 
-All three watchers use polling instead of native FS events. This is deliberate — native FS events don't propagate across podman's macOS bind-mounts and `CHOKIDAR_USEPOLLING` is ignored by Tailwind v4's watcher (which uses `@parcel/watcher`, not chokidar). Polling at 1s costs nothing and works on every container runtime.
+All three watchers use polling instead of native FS events. This is deliberate — native FS events don't propagate across podman's macOS bind-mounts, and Tailwind v4's built-in `--watch` uses `@parcel/watcher` (native FS events) so it has the same problem. We run the one-shot CLI from a polling shell loop instead. Polling at 1s costs nothing and works on every container runtime.
 
 If you'd rather run the app outside Docker:
 
 ```bash
 # Need a Postgres and a Valkey somewhere (e.g. `docker compose up db cache`)
-npm install
-npm run build              # one-shot CSS build (or `npm run watch` for the polling watch loop)
+just css-build             # one-shot CSS build (fetches the standalone Tailwind v4 binary on first run; `just css` for the polling watch loop)
 cargo install --locked systemfd cargo-watch    # one-time
 cargo install --locked sqlx-cli --no-default-features --features rustls,postgres  # if you want CLI migrations
 just run                   # systemfd + cargo watch
@@ -165,7 +164,7 @@ Notable knobs:
 - No email verification, password reset, OAuth/OIDC.
 - Single Postgres, single Valkey. Run Postgres behind PgBouncer in real deployments.
 - One user per email; no multi-tenancy beyond per-user isolation.
-- The `tailwind` dev-watch loop runs `find` mtime polling at 1s — fine for one engineer's laptop; not appropriate as a CI build step (use `npm run build` instead).
+- The `tailwind` dev-watch loop runs `find` mtime polling at 1s — fine for one engineer's laptop; not appropriate as a CI build step (use `just css-build` instead).
 
 ## Production deployment (Hetzner k3s)
 
