@@ -49,6 +49,7 @@ services:
     working_dir: /app
     volumes:
       - ../templates:/app/templates:ro
+      - ../crates:/app/crates:ro
       - ../static:/app/static
     # Tailwind v4's `--watch` uses @parcel/watcher (native FS events). Native
     # FS events don't cross podman's macOS bind-mount, so the watcher never
@@ -64,7 +65,7 @@ services:
         build() { tailwindcss -i ./static/css/app.src.css -o ./static/css/app.css; }
         build
         echo "[tailwind] initial build done; polling for changes every 1s."
-        snapshot() { find ./static/css/app.src.css ./templates -type f -printf '%T@\n' 2>/dev/null | sort -n | tail -1; }
+        snapshot() { find ./static/css/app.src.css ./templates ./crates -type f -printf '%T@\n' 2>/dev/null | sort -n | tail -1; }
         LAST=$$(snapshot)
         while true; do
           sleep 1
