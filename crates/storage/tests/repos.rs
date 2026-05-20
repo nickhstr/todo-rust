@@ -159,6 +159,42 @@ async fn todos_isolated_per_user() {
 }
 
 #[tokio::test]
+async fn update_preferences_persists_and_clears() {
+    let (_c, pool) = fixture().await;
+    let users = UserRepository::new(pool);
+
+    let user = users
+        .create(NewUser {
+            email: format!("prefs-{}@example.com", uuid::Uuid::new_v4()),
+            password: "twelve-chars!".into(),
+        })
+        .await
+        .unwrap();
+
+    // initial: both NULL
+    assert_eq!(user.locale, None);
+    assert_eq!(user.timezone, None);
+
+    // set both
+    users
+        .update_preferences(user.id, Some("es"), Some("America/Los_Angeles"))
+        .await
+        .unwrap();
+    let reloaded = users.find_by_id(user.id).await.unwrap().unwrap();
+    assert_eq!(reloaded.locale.as_deref(), Some("es"));
+    assert_eq!(reloaded.timezone.as_deref(), Some("America/Los_Angeles"));
+
+    // clear locale only (empty string == clear); leave timezone
+    users
+        .update_preferences(user.id, Some(""), None)
+        .await
+        .unwrap();
+    let reloaded = users.find_by_id(user.id).await.unwrap().unwrap();
+    assert_eq!(reloaded.locale, None);
+    assert_eq!(reloaded.timezone.as_deref(), Some("America/Los_Angeles"));
+}
+
+#[tokio::test]
 async fn todo_update_and_toggle() {
     let (_c, pool) = fixture().await;
     let users = UserRepository::new(pool.clone());

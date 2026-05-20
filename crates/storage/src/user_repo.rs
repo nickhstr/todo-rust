@@ -40,7 +40,7 @@ impl UserRepository {
         let row = sqlx::query(
             "INSERT INTO users (id, email, password_hash) \
              VALUES ($1, $2, $3) \
-             RETURNING id, email, password_hash, created_at",
+             RETURNING id, email, password_hash, created_at, locale, timezone",
         )
         .bind(id.0)
         .bind(&email)
@@ -59,11 +59,13 @@ impl UserRepository {
 
     #[tracing::instrument(skip(self))]
     pub async fn find_by_id(&self, id: UserId) -> Result<Option<User>, StorageError> {
-        let row =
-            sqlx::query("SELECT id, email, password_hash, created_at FROM users WHERE id = $1")
-                .bind(id.0)
-                .fetch_optional(&*self.pool)
-                .await?;
+        let row = sqlx::query(
+            "SELECT id, email, password_hash, created_at, locale, timezone \
+             FROM users WHERE id = $1",
+        )
+        .bind(id.0)
+        .fetch_optional(&*self.pool)
+        .await?;
         Ok(row.as_ref().map(row_to_user))
     }
 
@@ -72,7 +74,7 @@ impl UserRepository {
     #[tracing::instrument(skip(self), fields(email = %email))]
     pub async fn find_by_email(&self, email: &str) -> Result<Option<User>, StorageError> {
         let row = sqlx::query(
-            "SELECT id, email, password_hash, created_at \
+            "SELECT id, email, password_hash, created_at, locale, timezone \
              FROM users \
              WHERE LOWER(email) = LOWER($1) \
              LIMIT 1",
@@ -90,7 +92,7 @@ impl UserRepository {
     #[tracing::instrument(skip(self, password), fields(email = %email))]
     pub async fn verify(&self, email: &str, password: &str) -> Result<Option<User>, StorageError> {
         let row = sqlx::query(
-            "SELECT id, email, password_hash, created_at \
+            "SELECT id, email, password_hash, created_at, locale, timezone \
              FROM users \
              WHERE LOWER(email) = LOWER($1) \
              LIMIT 1",
@@ -116,6 +118,44 @@ impl UserRepository {
 
         Ok(if ok { found_user } else { None })
     }
+
+    /// Persist the user's locale and/or timezone. Passing `None` for a field
+    /// leaves the existing value untouched; passing `Some("")` sets it to NULL.
+    #[tracing::instrument(skip(self))]
+    pub async fn update_preferences(
+        &self,
+        id: UserId,
+        locale: Option<&str>,
+        timezone: Option<&str>,
+    ) -> Result<(), StorageError> {
+        // Encode each field as Option<Option<String>>:
+        //   None          → skip (no caller intent to change)
+        //   Some(None)    → set to SQL NULL  (caller passed "")
+        //   Some(Some(s)) → set to s
+        //
+        // COALESCE($param, col) keeps the existing column value when $param IS NULL,
+        // so we need a sentinel that lets us express "set to NULL" differently.
+        // We use a three-value approach via two boolean flags.
+        let set_locale = locale.is_some();
+        let locale_val: Option<String> = locale.and_then(|s| if s.is_empty() { None } else { Some(s.to_owned()) });
+        let set_timezone = timezone.is_some();
+        let timezone_val: Option<String> = timezone.and_then(|s| if s.is_empty() { None } else { Some(s.to_owned()) });
+
+        sqlx::query(
+            "UPDATE users \
+                SET locale   = CASE WHEN $2 THEN $3 ELSE locale END, \
+                    timezone = CASE WHEN $4 THEN $5 ELSE timezone END \
+              WHERE id = $1",
+        )
+        .bind(id.0)
+        .bind(set_locale)
+        .bind(locale_val)
+        .bind(set_timezone)
+        .bind(timezone_val)
+        .execute(&*self.pool)
+        .await?;
+        Ok(())
+    }
 }
 
 fn row_to_user(row: &sqlx::postgres::PgRow) -> User {
@@ -123,10 +163,14 @@ fn row_to_user(row: &sqlx::postgres::PgRow) -> User {
     let email: String = row.get("email");
     let password_hash: String = row.get("password_hash");
     let created_at: OffsetDateTime = row.get("created_at");
+    let locale: Option<String> = row.try_get("locale").ok().flatten();
+    let timezone: Option<String> = row.try_get("timezone").ok().flatten();
     User {
         id: UserId(id),
         email,
         password_hash,
         created_at,
+        locale,
+        timezone,
     }
 }
