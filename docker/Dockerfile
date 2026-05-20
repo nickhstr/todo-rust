@@ -51,9 +51,11 @@ COPY --from=builder /app/target/release/todo-app /usr/local/bin/todo-app
 COPY --from=css     /app/static                  /app/static
 COPY templates                                   /app/templates
 COPY migrations                                  /app/migrations
+COPY locales                                     /app/locales
 
 ENV APP__TEMPLATES_DIR=/app/templates \
     APP__STATIC_DIR=/app/static \
+    APP__LOCALES_DIR=/app/locales \
     APP__TEMPLATE_AUTORELOAD=false
 
 EXPOSE 3000

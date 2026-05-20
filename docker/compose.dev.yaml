@@ -26,6 +26,7 @@ services:
       - ../templates:/app/templates
       - ../static:/app/static
       - ../migrations:/app/migrations
+      - ../locales:/app/locales
       - ../Cargo.toml:/app/Cargo.toml
       - ../Cargo.lock:/app/Cargo.lock:ro
       - cargo-cache:/usr/local/cargo/registry
