@@ -8,7 +8,7 @@ use minijinja::context;
 use crate::{
     auth::AuthSession,
     middleware::{CspNonce, RequestLocale, RequestTz},
-    render::base_context,
+    render::{base_context, override_from_profile},
     AppState,
 };
 
@@ -24,16 +24,7 @@ pub async fn index(
     let Some(user) = auth.user.as_ref() else {
         return Ok(Redirect::to("/login").into_response());
     };
-
-    // Profile.locale takes precedence over middleware-resolved value.
-    let locale = match user.0.locale.as_deref() {
-        Some(s) if !s.is_empty() => RequestLocale(s.parse().unwrap_or_else(|_| locale.0.clone())),
-        _ => locale,
-    };
-    let tz = match user.0.timezone.as_deref() {
-        Some(s) if !s.is_empty() => RequestTz(todo_i18n::parse_tz(s).unwrap_or(tz.0)),
-        _ => tz,
-    };
+    let (locale, tz) = override_from_profile(&user.0, locale, tz);
 
     let todos = state.list_todos_cached(user.0.id).await?;
     let html = state.templates.render(

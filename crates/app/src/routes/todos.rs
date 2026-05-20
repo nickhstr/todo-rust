@@ -12,7 +12,7 @@ use validator::Validate;
 use crate::{
     auth::{require_user, AuthSession},
     middleware::{CspNonce, RequestLocale, RequestTz},
-    render::{base_context, localize_validation_errors},
+    render::{base_context, localize_validation_errors, override_from_profile},
     AppError, AppState,
 };
 
@@ -25,6 +25,8 @@ pub async fn list(
     Extension(nonce): Extension<CspNonce>,
 ) -> Result<Response, AppError> {
     let user_id = require_user(&auth)?;
+    let user = auth.user.as_ref().expect("require_user succeeded");
+    let (locale, tz) = override_from_profile(&user.0, locale, tz);
     let todos = state.list_todos_cached(user_id).await?;
     let html = state.templates.render(
         "partials/todo_list.html",
@@ -47,9 +49,11 @@ pub async fn create(
     Form(new): Form<NewTodo>,
 ) -> Result<Response, AppError> {
     let user_id = require_user(&auth)?;
+    let user = auth.user.as_ref().expect("require_user succeeded");
+    let (locale, tz) = override_from_profile(&user.0, locale, tz);
     // Resolve Fluent ids through the request's locale before the `?`
-    // operator turns ValidationErrors into a generic AppError that has
-    // no Locales handle.
+    // operator on storage errors swallows context. (Validation has no
+    // `From` into AppError, so the explicit handling is mandatory.)
     if let Err(errs) = new.validate() {
         return Err(AppError::Validation(localize_validation_errors(
             &state.locales,
@@ -80,6 +84,8 @@ pub async fn toggle(
     Extension(nonce): Extension<CspNonce>,
 ) -> Result<Response, AppError> {
     let user_id = require_user(&auth)?;
+    let user = auth.user.as_ref().expect("require_user succeeded");
+    let (locale, tz) = override_from_profile(&user.0, locale, tz);
     let todo = state.todos.toggle(user_id, TodoId(id)).await?;
     state.invalidate_todos_cache(user_id).await;
     metrics::counter!("todos_toggled_total").increment(1);

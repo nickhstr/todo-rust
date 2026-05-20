@@ -3,6 +3,7 @@
 
 use minijinja::{context, value::Value};
 use time_tz::TimeZone as _;
+use todo_domain::User;
 use todo_i18n::Locales;
 use unic_langid::LanguageIdentifier;
 use validator::ValidationErrors;
@@ -18,6 +19,29 @@ pub fn base_context(locale: &RequestLocale, tz: &RequestTz, csp_nonce: &CspNonce
         _tz => tz.0.name(),
         csp_nonce => csp_nonce.0.clone(),
     }
+}
+
+/// Override the middleware-resolved locale and tz with the
+/// authenticated user's profile values when present and parseable.
+/// Authenticated handlers that render templates should always call
+/// this so the user's saved preferences win over header/cookie
+/// negotiation — anything else creates an inconsistency where the
+/// initial page renders in the profile locale but htmx fragments
+/// render in the browser's Accept-Language.
+pub fn override_from_profile(
+    user: &User,
+    locale: RequestLocale,
+    tz: RequestTz,
+) -> (RequestLocale, RequestTz) {
+    let locale = match user.locale.as_deref() {
+        Some(s) if !s.is_empty() => RequestLocale(s.parse().unwrap_or_else(|_| locale.0.clone())),
+        _ => locale,
+    };
+    let tz = match user.timezone.as_deref() {
+        Some(s) if !s.is_empty() => RequestTz(todo_i18n::parse_tz(s).unwrap_or(tz.0)),
+        _ => tz,
+    };
+    (locale, tz)
 }
 
 /// Walk `ValidationErrors`, treat each `message` as a Fluent id, and
