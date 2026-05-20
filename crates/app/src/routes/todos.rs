@@ -12,7 +12,7 @@ use validator::Validate;
 use crate::{
     auth::{require_user, AuthSession},
     middleware::{CspNonce, RequestLocale, RequestTz},
-    render::base_context,
+    render::{base_context, localize_validation_errors},
     AppError, AppState,
 };
 
@@ -47,7 +47,16 @@ pub async fn create(
     Form(new): Form<NewTodo>,
 ) -> Result<Response, AppError> {
     let user_id = require_user(&auth)?;
-    new.validate()?;
+    // Resolve Fluent ids through the request's locale before the `?`
+    // operator turns ValidationErrors into a generic AppError that has
+    // no Locales handle.
+    if let Err(errs) = new.validate() {
+        return Err(AppError::Validation(localize_validation_errors(
+            &state.locales,
+            &locale.0,
+            &errs,
+        )));
+    }
     let todo = state.todos.create(user_id, new).await?;
     state.invalidate_todos_cache(user_id).await;
     metrics::counter!("todos_created_total").increment(1);

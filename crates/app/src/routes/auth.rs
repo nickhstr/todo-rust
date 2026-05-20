@@ -231,22 +231,7 @@ fn format_validation_message(
     locale: &unic_langid::LanguageIdentifier,
     errs: &validator::ValidationErrors,
 ) -> String {
-    let mut parts = Vec::new();
-    for (_field, kind) in errs.field_errors() {
-        for e in kind {
-            let id = e
-                .message
-                .as_ref()
-                .map(std::string::ToString::to_string)
-                .unwrap_or_else(|| e.code.to_string());
-            parts.push(state.locales.lookup(locale, &id, None));
-        }
-    }
-    if parts.is_empty() {
-        state.locales.lookup(locale, "validation-generic", None)
-    } else {
-        parts.join(" ")
-    }
+    crate::render::localize_validation_errors(&state.locales, locale, errs)
 }
 
 /// htmx-aware redirect: if `HX-Request` is set, return 200 + `HX-Redirect`
