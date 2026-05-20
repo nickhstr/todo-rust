@@ -19,7 +19,8 @@ async fn nonce_in_csp_matches_inline_script() {
         .to_owned();
     let body = res.text().await.unwrap();
 
-    let re = Regex::new(r"nonce-([A-Za-z0-9+/]+)").unwrap();
+    // URL-safe base64 alphabet (see middleware/security.rs)
+    let re = Regex::new(r"nonce-([A-Za-z0-9_-]+)").unwrap();
     let nonce = re
         .captures(&csp)
         .expect("nonce in CSP")

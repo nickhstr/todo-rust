@@ -109,7 +109,11 @@ pub fn build_router(
             // url_path will be like "css/app.<hash>.css" (the leading "/static/"
             // was already stripped by nest_service before delegating to us)
             if let Some(on_disk) = assets.resolve_hashed_request(&path) {
-                match crate::routes::assets::serve_immutable_file(&on_disk).await {
+                let ae = req
+                    .headers()
+                    .get(axum::http::header::ACCEPT_ENCODING)
+                    .and_then(|v| v.to_str().ok());
+                match crate::routes::assets::serve_immutable_file(&on_disk, ae).await {
                     Ok(r) => Ok::<_, std::convert::Infallible>(r),
                     Err(_) => Ok(crate::routes::assets::not_found()),
                 }
