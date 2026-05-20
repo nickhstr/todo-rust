@@ -24,7 +24,12 @@ async fn signup_and_create_todo(server: &common::TestServer, email: &str, title:
         .unwrap();
     let status = created.status();
     let body = created.text().await.unwrap();
-    assert_eq!(status, 201, "todo creation failed; body: {}", &body[..body.len().min(500)]);
+    assert_eq!(
+        status,
+        201,
+        "todo creation failed; body: {}",
+        &body[..body.len().min(500)]
+    );
 }
 
 #[tokio::test]
@@ -44,7 +49,11 @@ async fn time_element_has_utc_datetime_attribute() {
     let doc = Html::parse_document(&body);
     let sel = Selector::parse("time[datetime]").unwrap();
     let times: Vec<_> = doc.select(&sel).collect();
-    assert!(!times.is_empty(), "no <time> elements found in: {}", &body[..body.len().min(500)]);
+    assert!(
+        !times.is_empty(),
+        "no <time> elements found in: {}",
+        &body[..body.len().min(500)]
+    );
 
     for el in times {
         let dt = el.value().attr("datetime").unwrap();

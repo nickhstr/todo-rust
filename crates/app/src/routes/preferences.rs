@@ -42,7 +42,11 @@ pub async fn update_locale(
     let mut headers = HeaderMap::new();
     let cookie = format!(
         "locale={candidate}; Path=/; Max-Age=31536000; SameSite=Lax{secure}",
-        secure = if state.config.auth.cookie_secure { "; Secure" } else { "" },
+        secure = if state.config.auth.cookie_secure {
+            "; Secure"
+        } else {
+            ""
+        },
     );
     headers.insert(header::SET_COOKIE, cookie.parse().expect("valid cookie"));
     headers.insert("HX-Refresh", "true".parse().expect("valid header"));

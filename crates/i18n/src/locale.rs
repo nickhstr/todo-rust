@@ -67,7 +67,9 @@ fn negotiate_from_accept_language(header: &str) -> Option<LanguageIdentifier> {
 mod tests {
     use super::*;
 
-    fn lang(s: &str) -> LanguageIdentifier { s.parse().unwrap() }
+    fn lang(s: &str) -> LanguageIdentifier {
+        s.parse().unwrap()
+    }
 
     #[test]
     fn profile_wins_over_cookie_and_header() {

@@ -78,7 +78,9 @@ pub async fn login(
                 &tz,
                 &nonce,
                 &creds.next,
-                &state.locales.lookup(&locale.0, "validation-invalid-credentials", None),
+                &state
+                    .locales
+                    .lookup(&locale.0, "validation-invalid-credentials", None),
                 StatusCode::UNAUTHORIZED,
             );
         }
@@ -144,7 +146,9 @@ pub async fn signup(
                 &locale,
                 &tz,
                 &nonce,
-                &state.locales.lookup(&locale.0, "validation-account-exists", None),
+                &state
+                    .locales
+                    .lookup(&locale.0, "validation-account-exists", None),
                 StatusCode::CONFLICT,
             );
         }

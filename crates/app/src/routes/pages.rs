@@ -27,9 +27,7 @@ pub async fn index(
 
     // Profile.locale takes precedence over middleware-resolved value.
     let locale = match user.0.locale.as_deref() {
-        Some(s) if !s.is_empty() => RequestLocale(
-            s.parse().unwrap_or_else(|_| locale.0.clone()),
-        ),
+        Some(s) if !s.is_empty() => RequestLocale(s.parse().unwrap_or_else(|_| locale.0.clone())),
         _ => locale,
     };
     let tz = match user.0.timezone.as_deref() {

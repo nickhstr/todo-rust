@@ -160,11 +160,8 @@ mod tests {
     #[test]
     fn datetime_helper_emits_time_element() {
         let mut env = build_env();
-        env.add_template(
-            "test.txt",
-            "{{ datetime(value, style='medium') }}",
-        )
-        .unwrap();
+        env.add_template("test.txt", "{{ datetime(value, style='medium') }}")
+            .unwrap();
         let out = env
             .get_template("test.txt")
             .unwrap()
@@ -182,7 +179,8 @@ mod tests {
     #[test]
     fn asset_helper_prepends_static_prefix() {
         let mut env = build_env();
-        env.add_template("test.txt", "{{ asset('css/app.css') }}").unwrap();
+        env.add_template("test.txt", "{{ asset('css/app.css') }}")
+            .unwrap();
         let out = env
             .get_template("test.txt")
             .unwrap()

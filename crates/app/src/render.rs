@@ -11,11 +11,7 @@ use crate::middleware::{CspNonce, RequestLocale, RequestTz};
 /// Build the standard "ambient" context. Templates always see
 /// `_locale`, `_tz`, and `csp_nonce`. Handlers extend it with their
 /// own values via `context! { ..base_context(...), foo, bar }`.
-pub fn base_context(
-    locale: &RequestLocale,
-    tz: &RequestTz,
-    csp_nonce: &CspNonce,
-) -> Value {
+pub fn base_context(locale: &RequestLocale, tz: &RequestTz, csp_nonce: &CspNonce) -> Value {
     context! {
         _locale => locale.0.to_string(),
         _tz => tz.0.name(),

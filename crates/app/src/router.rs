@@ -137,7 +137,9 @@ pub fn build_router(
             HeaderValue::from_static("private, no-cache"),
         ))
         .layer(ax_middleware::from_fn(crate::middleware::i18n_middleware))
-        .layer(ax_middleware::from_fn(crate::middleware::csp_nonce_middleware))
+        .layer(ax_middleware::from_fn(
+            crate::middleware::csp_nonce_middleware,
+        ))
         .layer(TimeoutLayer::with_status_code(
             axum::http::StatusCode::REQUEST_TIMEOUT,
             Duration::from_secs(30),
