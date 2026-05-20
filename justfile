@@ -70,8 +70,13 @@ down:
     docker compose -f docker/compose.yaml -f docker/compose.dev.yaml down
 
 # Nuke everything including volumes (Postgres data, Loki blocks, etc.). Use after a
-# breaking schema change or to reset Grafana state.
+# breaking schema change or to reset Grafana state. DESTRUCTIVE — pgdata and all
+# other named volumes are permanently removed. Requires typing "nuke" at the
+# prompt; pipe input (`echo nuke | just nuke`) if you need it non-interactive.
 nuke:
+    @printf 'This will permanently delete the todo-app Docker volumes (pgdata, valkey, loki, tempo, prom, grafana).\nData is NOT recoverable.\nType "nuke" to confirm: ' && \
+        read -r CONFIRM && \
+        [ "$CONFIRM" = "nuke" ] || { echo "Aborted."; exit 1; }
     docker compose -f docker/compose.yaml -f docker/compose.dev.yaml down -v
 
 # Down + up; preserves volumes.
