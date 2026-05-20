@@ -2,7 +2,8 @@ use std::{sync::Arc, time::Duration};
 
 use fred::prelude::RedisPool;
 use todo_domain::{Todo, UserId};
-use todo_i18n::{Assets, Locales};
+use todo_assets::Assets;
+use todo_i18n::Locales;
 use todo_storage::{DbPool, StorageError, TodoRepository, UserRepository};
 
 use crate::{cache::Cache, templates::Templates, Config};

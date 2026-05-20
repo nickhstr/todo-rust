@@ -9,8 +9,9 @@ use minijinja::{value::Value, Environment, Error as JinjaError, ErrorKind};
 use time::OffsetDateTime;
 use unic_langid::{langid, LanguageIdentifier};
 
+use todo_assets::Assets;
+
 use crate::{
-    assets::Assets,
     datetime::{format_datetime, DateTimeStyle},
     messages::{FluentArgs, Locales},
     tz::{Tz, UTC},

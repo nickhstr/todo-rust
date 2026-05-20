@@ -68,10 +68,10 @@ async fn main() -> anyhow::Result<()> {
         .map_err(|e| anyhow::anyhow!("load locales: {e}"))?;
 
     let assets = if config.template_autoreload {
-        Arc::new(todo_i18n::Assets::dev(config.static_dir.clone()))
+        Arc::new(todo_assets::Assets::dev(config.static_dir.clone()))
     } else {
         Arc::new(
-            todo_i18n::Assets::production(config.static_dir.clone())
+            todo_assets::Assets::production(config.static_dir.clone())
                 .map_err(|e| anyhow::anyhow!("scan static dir: {e}"))?,
         )
     };
