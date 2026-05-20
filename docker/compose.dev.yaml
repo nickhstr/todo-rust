@@ -42,11 +42,12 @@ services:
         systemfd --no-pid -s http::0.0.0.0:3000 -- cargo watch --poll -x 'run --bin todo-app'
 
   tailwind:
-    image: node:24-bookworm-slim
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+      target: css-builder
     working_dir: /app
     volumes:
-      - ../package.json:/app/package.json:ro
-      - ../tailwind.config.js:/app/tailwind.config.js:ro
       - ../templates:/app/templates:ro
       - ../static:/app/static
     # Tailwind v4's `--watch` uses @parcel/watcher (native FS events). Native
@@ -60,11 +61,10 @@ services:
       # interpolate `${LAST}` etc. as compose variables.
       - |
         set -eu
-        npm install --no-audit --no-fund
-        build() { node_modules/.bin/tailwindcss -i ./static/css/app.src.css -o ./static/css/app.css; }
+        build() { tailwindcss -i ./static/css/app.src.css -o ./static/css/app.css; }
         build
         echo "[tailwind] initial build done; polling for changes every 1s."
-        snapshot() { find ./static/css/app.src.css ./templates ./tailwind.config.js -type f -printf '%T@\n' 2>/dev/null | sort -n | tail -1; }
+        snapshot() { find ./static/css/app.src.css ./templates -type f -printf '%T@\n' 2>/dev/null | sort -n | tail -1; }
         LAST=$$(snapshot)
         while true; do
           sleep 1
