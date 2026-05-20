@@ -23,6 +23,7 @@ pub struct UpdateLocale {
 pub async fn update_locale(
     auth: AuthSession,
     State(state): State<AppState>,
+    request_headers: HeaderMap,
     Form(body): Form<UpdateLocale>,
 ) -> Result<Response, AppError> {
     let candidate = body.locale.trim();
@@ -49,7 +50,22 @@ pub async fn update_locale(
         },
     );
     headers.insert(header::SET_COOKIE, cookie.parse().expect("valid cookie"));
-    headers.insert("HX-Refresh", "true".parse().expect("valid header"));
 
-    Ok((StatusCode::NO_CONTENT, headers).into_response())
+    // htmx callers expect HX-Refresh; plain-form callers get a regular
+    // redirect so they don't end up staring at a blank page.
+    if request_headers.get("HX-Request").is_some() {
+        headers.insert("HX-Refresh", "true".parse().expect("valid header"));
+        Ok((StatusCode::NO_CONTENT, headers).into_response())
+    } else {
+        let target = request_headers
+            .get(header::REFERER)
+            .and_then(|v| v.to_str().ok())
+            .map(str::to_owned)
+            .unwrap_or_else(|| "/".to_owned());
+        headers.insert(
+            header::LOCATION,
+            target.parse().unwrap_or_else(|_| "/".parse().unwrap()),
+        );
+        Ok((StatusCode::SEE_OTHER, headers).into_response())
+    }
 }
