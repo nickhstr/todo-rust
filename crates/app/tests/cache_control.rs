@@ -21,22 +21,20 @@ async fn html_responses_have_private_no_cache() {
 
 #[tokio::test]
 async fn unhashed_static_assets_are_cacheable() {
-    // static/css/app.css is the Tailwind-compiled stylesheet. It is committed
-    // to the repo, so this test will pass as long as the file exists on disk.
-    // If the file is absent (e.g. in a clean checkout without running Tailwind),
-    // the endpoint returns 404 and the test fails with a clear message.
+    // A vendored JS file is tracked in git, so this works in any clean
+    // checkout (unlike static/css/app.css, which Tailwind generates and is
+    // gitignored — CI doesn't run Tailwind before the Rust test step).
     let server = common::spawn().await;
     let res = server
         .client
-        .get(format!("{}/static/css/app.css", server.base_url))
+        .get(format!(
+            "{}/static/vendor/htmx-4.0.0-beta3.min.js",
+            server.base_url
+        ))
         .send()
         .await
         .unwrap();
-    assert_eq!(
-        res.status(),
-        200,
-        "static/css/app.css must exist on disk; run `tailwindcss` to generate it"
-    );
+    assert_eq!(res.status(), 200);
     let cc = res
         .headers()
         .get("cache-control")
