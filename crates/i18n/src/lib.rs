@@ -12,6 +12,6 @@ pub mod tz;
 pub use assets::Assets;
 pub use datetime::{format_datetime, DateTimeStyle};
 pub use locale::{negotiate, SUPPORTED};
-pub use messages::Locales;
-pub use minijinja_helpers::register;
+pub use messages::{FluentArgs, Locales};
+pub use minijinja_helpers::{register, Helpers};
 pub use tz::{parse_tz, Tz, UTC};

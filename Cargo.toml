@@ -87,7 +87,7 @@ metrics-exporter-prometheus        = "0.15"
 
 # Utilities
 uuid        = { version = "1.10", features = ["v4", "v7", "serde"] }
-time        = { version = "0.3", features = ["serde", "macros", "formatting"] }
+time        = { version = "0.3", features = ["serde", "macros", "formatting", "parsing"] }
 config      = { version = "0.14", features = ["toml", "yaml"] }
 dotenvy     = "0.15"
 listenfd    = "1.0"
