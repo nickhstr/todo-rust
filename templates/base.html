@@ -32,8 +32,11 @@
           el.textContent = fmt.format(new Date(el.dateTime));
         }
       };
-      upgrade(document);
+      // Running synchronously in <head>, the body hasn't been parsed yet,
+      // so document.querySelectorAll('time[datetime]') is empty. Re-run
+      // once the DOM is built, then keep upgrading htmx-swapped fragments.
       document.addEventListener('DOMContentLoaded', () => {
+        upgrade(document);
         document.body.addEventListener('htmx:after:swap', (e) => upgrade(e.target));
       });
     })();
