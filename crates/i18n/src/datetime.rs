@@ -3,6 +3,9 @@
 //! what no-JS users and search engines see, and matches what the
 //! client-side `Intl.DateTimeFormat` will produce.
 
+use std::cell::RefCell;
+use std::collections::HashMap;
+
 use icu::calendar::DateTime as IcuDateTime;
 use icu::datetime::{options::length, DateTimeFormatter, DateTimeFormatterOptions};
 use icu::locid::Locale;
@@ -12,7 +15,7 @@ use unic_langid::LanguageIdentifier;
 
 use crate::tz::Tz;
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum DateTimeStyle {
     Short,
     Medium,
@@ -38,6 +41,19 @@ impl DateTimeStyle {
     }
 }
 
+/// `DateTimeFormatter` is expensive to build (parses CLDR data). For a
+/// page that renders N todos we'd otherwise construct N identical
+/// formatters. Cache by `(locale, style)` per thread — the formatter
+/// holds non-Send state internally (icu uses `Rc` in its default data
+/// provider), so a thread-local cache is the natural fit. Bounded at
+/// ~12 entries per Tokio worker for the four shipped locales × three
+/// styles.
+type FormatterKey = (String, DateTimeStyle);
+thread_local! {
+    static FORMATTER_CACHE: RefCell<HashMap<FormatterKey, DateTimeFormatter>> =
+        RefCell::new(HashMap::new());
+}
+
 pub fn format_datetime(
     value: OffsetDateTime,
     locale: &LanguageIdentifier,
@@ -60,22 +76,28 @@ pub fn format_datetime(
     // Gregorian calendar — this avoids calendar-mismatch errors when
     // `to_any()` produces an ISO-calendar datetime.
     let locale_str = format!("{}-u-ca-gregory", locale);
-    let icu_locale: Locale = locale_str
-        .parse()
-        .unwrap_or_else(|_| "en-u-ca-gregory".parse().unwrap());
+    let key: FormatterKey = (locale_str.clone(), style);
 
-    let formatter = DateTimeFormatter::try_new(&icu_locale.into(), style.length());
-
-    match (icu_dt, formatter) {
-        (Ok(dt), Ok(f)) => {
-            let any = dt.to_any();
-            match f.format_to_string(&any) {
-                Ok(s) => s,
-                Err(_) => iso_fallback(local),
-            }
+    FORMATTER_CACHE.with(|cell| {
+        let mut cache = cell.borrow_mut();
+        if !cache.contains_key(&key) {
+            let icu_locale: Locale = locale_str
+                .parse()
+                .unwrap_or_else(|_| "en-u-ca-gregory".parse().unwrap());
+            let Ok(formatter) = DateTimeFormatter::try_new(&icu_locale.into(), style.length())
+            else {
+                return iso_fallback(local);
+            };
+            cache.insert(key.clone(), formatter);
         }
-        _ => iso_fallback(local),
-    }
+        let formatter = cache.get(&key).expect("just inserted");
+        match icu_dt {
+            Ok(dt) => formatter
+                .format_to_string(&dt.to_any())
+                .unwrap_or_else(|_| iso_fallback(local)),
+            Err(_) => iso_fallback(local),
+        }
+    })
 }
 
 fn iso_fallback(local: OffsetDateTime) -> String {
