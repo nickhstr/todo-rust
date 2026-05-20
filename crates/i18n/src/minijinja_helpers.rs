@@ -114,12 +114,41 @@ fn value_to_offset_datetime(value: &Value) -> Result<OffsetDateTime, JinjaError>
         .map_err(|e| JinjaError::new(ErrorKind::InvalidOperation, e.to_string()))
 }
 
+/// Full HTML attribute-value escape: handles `&`, `<`, `>`, `"`, `'`.
+/// Used for the `datetime` attribute and `data-style` attribute of the
+/// generated `<time>` element. Today's inputs (RFC3339 timestamp,
+/// `DateTimeStyle::parse` output) are known-safe — this is defense in
+/// depth so future callers can't accidentally smuggle markup through.
 fn escape_attr(s: &str) -> String {
-    s.replace('&', "&amp;").replace('"', "&quot;")
+    let mut out = String::with_capacity(s.len());
+    for c in s.chars() {
+        match c {
+            '&' => out.push_str("&amp;"),
+            '<' => out.push_str("&lt;"),
+            '>' => out.push_str("&gt;"),
+            '"' => out.push_str("&quot;"),
+            '\'' => out.push_str("&#39;"),
+            _ => out.push(c),
+        }
+    }
+    out
 }
 
+/// HTML text-node escape: handles `&`, `<`, `>`. ICU's formatted output
+/// for the four shipped locales is always safe ASCII/printable Unicode
+/// without markup-significant characters, but this is defense in depth
+/// for future locale additions.
 fn escape_text(s: &str) -> String {
-    s.replace('&', "&amp;").replace('<', "&lt;")
+    let mut out = String::with_capacity(s.len());
+    for c in s.chars() {
+        match c {
+            '&' => out.push_str("&amp;"),
+            '<' => out.push_str("&lt;"),
+            '>' => out.push_str("&gt;"),
+            _ => out.push(c),
+        }
+    }
+    out
 }
 
 #[cfg(test)]
@@ -187,5 +216,17 @@ mod tests {
             .render(context! {})
             .unwrap();
         assert_eq!(out, "/static/css/app.css");
+    }
+
+    #[test]
+    fn escape_attr_handles_all_html_significant_chars() {
+        let out = escape_attr(r#"&<>"'"#);
+        assert_eq!(out, "&amp;&lt;&gt;&quot;&#39;");
+    }
+
+    #[test]
+    fn escape_text_handles_markup_chars() {
+        let out = escape_text("a<script>&amp;");
+        assert_eq!(out, "a&lt;script&gt;&amp;amp;");
     }
 }
