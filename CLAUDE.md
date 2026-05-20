@@ -8,7 +8,7 @@ A small Rust + axum todo app, production-shaped: Postgres + Valkey, cookie sessi
 
 The point isn't the todos — it's the scaffold. Optimize for that.
 
-## Workspace layout (4 crates + binary)
+## Workspace layout (5 crates + binary)
 
 ```
 crates/
@@ -20,8 +20,10 @@ crates/
   observability/  init_tracing (OTLP + fmt subscriber), install_metrics_recorder (Prometheus).
                   Independent of domain/storage/app. Imported only by app.
   i18n/           Locale negotiation, Fluent message catalogs, ICU datetime formatting,
-                  content-hashed asset manifest, minijinja helpers (t, datetime, asset).
+                  minijinja helpers (t, datetime).
                   May depend on fluent/icu/time-tz/minijinja — NOT axum, NOT sqlx.
+  assets/         Content-hashed static asset manifest, minijinja helper (asset).
+                  May depend on sha2/minijinja — NOT axum, NOT sqlx, NOT fluent/icu.
   app/            HTTP layer: config, error, state, templates, auth, middleware, router, routes, cache.
                   src/lib.rs re-exports build_router so integration tests can spin up the same router as main.rs.
                   src/main.rs is the binary entrypoint.
@@ -138,7 +140,7 @@ The naming is NOT keyed on literal header names in the JS — searches for `"HX-
 - **Dev passwordless login is gated TWO ways.** `POST /dev/login` exists when (a) the binary was built with `debug_assertions` AND (b) `APP__DEV__AUTO_LOGIN_EMAIL` is non-empty. The route module (`crates/app/src/routes/dev.rs`) is `#[cfg(debug_assertions)]`, so `--release` literally doesn't link it; the handler also checks `DevConfig::enabled_email()` at runtime. `main::ensure_dev_user` seeds the account with a throwaway random password on startup; the `/dev/login` handler bypasses verify. Set in `docker/compose.dev.yaml` to `dev@local`. Don't add this to `compose.yaml` — that's the prod path.
 - **CSP nonces are per-request.** The static `Content-Security-Policy` header layer was replaced by `csp_nonce_middleware` in `crates/app/src/middleware/security.rs`, which generates a 128-bit base64 nonce, stashes `CspNonce` on request extensions, and writes `script-src 'self' 'unsafe-eval' 'nonce-<value>'` into the response. Templates pull the nonce via the standard context key `csp_nonce` (provided by `crates/app/src/render.rs::base_context`) and emit it on any inline `<script>`. Don't add `'unsafe-inline'` back — the whole point is to avoid it. `'unsafe-eval'` stays because Alpine.js and htmx 4's `hx-on::*` runtime-compile expressions.
 - **Default `Cache-Control: private, no-cache` on every response.** Set by `SetResponseHeaderLayer::if_not_present` in the router. Handlers and the static-asset path override; the hashed-asset handler sets `public, max-age=31536000, immutable`, and the wrapped `ServeDir` for unhashed assets gets `public, max-age=300` via `SetResponseHeaderLayer::overriding`. If you add a route that wants a longer HTML cache, set the header yourself — `if_not_present` semantics let you override.
-- **Asset hashing manifest is built at startup in production.** When `template_autoreload=false`, `crates/i18n/src/assets.rs` walks `static/` and computes `sha256(file)[..8]` for each non-precompressed file. The `asset()` minijinja global resolves logical paths (`css/app.css`) to hashed URLs (`/static/css/app.<hash>.css`). In dev (`template_autoreload=true`), the manifest is a passthrough; raw paths are used so Tailwind `--watch` can edit files freely. The custom service in `router.rs` checks `Assets::resolve_hashed_request(url_path)` first; on miss it falls through to `ServeDir` with the short cache.
+- **Asset hashing manifest is built at startup in production.** When `template_autoreload=false`, `crates/assets/src/manifest.rs` walks `static/` and computes `sha256(file)[..8]` for each non-precompressed file. The `asset()` minijinja global resolves logical paths (`css/app.css`) to hashed URLs (`/static/css/app.<hash>.css`). In dev (`template_autoreload=true`), the manifest is a passthrough; raw paths are used so Tailwind `--watch` can edit files freely. The custom service in `router.rs` checks `Assets::resolve_hashed_request(url_path)` first; on miss it falls through to `ServeDir` with the short cache.
 - **`<time datetime="…">` is the canonical source of truth for dates.** The server renders the inner text in the user's locale + tz via `crates/i18n/src/datetime.rs` (ICU CLDR patterns), and an inline upgrader script in `<head>` reformats client-side using `Intl.DateTimeFormat` (also setting the `tz` cookie on first visit). If you add a date-bearing template, use `{{ datetime(value, style="medium") }}` rather than printing the value directly.
 - **i18n cookie names are `locale` and `tz`** (not signed). The language switcher writes `locale` via `POST /preferences/locale` (also persists to `users.locale` if authenticated); the JS upgrader writes `tz`. Server-side precedence per `crates/app/src/middleware/i18n.rs`: profile (authenticated, in handlers) → cookie → `Accept-Language` → en for locale; profile → cookie → UTC for tz.
 - **Fluent message IDs are validated at use time, not at compile time.** Templates and `#[validate(message = "...")]` attributes hold raw IDs; the `t()` minijinja helper and the HTTP-edge error mapper resolve them via `state.locales.lookup(...)`. A typo in an ID renders the literal ID and logs `i18n: missing message id` with an `i18n_missing_key_total{locale,key}` metric — visible at runtime, not at build time.
