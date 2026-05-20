@@ -4,4 +4,7 @@
 //! `lib.rs`.
 
 pub mod fixtures;
+pub mod routes;
 pub mod shell;
+
+pub use routes::router;
