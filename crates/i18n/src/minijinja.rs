@@ -22,7 +22,11 @@ pub fn register(env: &mut Environment<'static>, locales: Locales) {
         move |state: &minijinja::State<'_, '_>, id: String, kwargs: minijinja::value::Kwargs| {
             let locale = current_locale(state);
             let args = kwargs_to_args(&kwargs);
-            Ok::<_, JinjaError>(Value::from(locales_for_t.lookup(&locale, &id, args.as_ref())))
+            Ok::<_, JinjaError>(Value::from(locales_for_t.lookup(
+                &locale,
+                &id,
+                args.as_ref(),
+            )))
         },
     );
 

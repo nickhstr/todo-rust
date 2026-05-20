@@ -1,8 +1,8 @@
 use std::{sync::Arc, time::Duration};
 
 use fred::prelude::RedisPool;
-use todo_domain::{Todo, UserId};
 use todo_assets::Assets;
+use todo_domain::{Todo, UserId};
 use todo_i18n::Locales;
 use todo_storage::{DbPool, StorageError, TodoRepository, UserRepository};
 
