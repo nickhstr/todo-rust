@@ -42,6 +42,10 @@ pub struct User {
     #[serde(skip_serializing)]
     pub password_hash: String,
     pub created_at: OffsetDateTime,
+    #[serde(default)]
+    pub locale: Option<String>,
+    #[serde(default)]
+    pub timezone: Option<String>,
 }
 
 #[derive(Debug, Clone, Deserialize, Validate)]
