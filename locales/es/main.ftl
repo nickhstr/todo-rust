@@ -1,0 +1,9 @@
+app-name = Diario Sereno
+app-tagline = Vol. I · Nº 1
+font-credit = Compuesto en Fraunces y Plex
+printed-in-rust = Impreso en Rust
+nav-account = Cuenta
+nav-login = Entrar
+nav-signup = Registrarse
+nav-logout = Cerrar sesión
+language-switcher-label = Idioma

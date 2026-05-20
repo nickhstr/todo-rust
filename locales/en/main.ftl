@@ -1,3 +1,10 @@
-# locales/en/main.ftl
 app-name = Quiet Ledger
 greeting = Hello, { $name }!
+app-tagline = Vol. I · No. 1
+font-credit = Set in Fraunces & Plex
+printed-in-rust = Printed in Rust
+nav-account = Account
+nav-login = Log in
+nav-signup = Sign up
+nav-logout = Log out
+language-switcher-label = Language
