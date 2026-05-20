@@ -2,7 +2,7 @@ use axum::{
     extract::{Query, State},
     http::{header, HeaderMap, StatusCode},
     response::{IntoResponse, Redirect, Response},
-    Form,
+    Extension, Form,
 };
 use minijinja::context;
 use serde::Deserialize;
@@ -11,6 +11,8 @@ use validator::Validate;
 
 use crate::{
     auth::{AuthSession, LoginCredentials},
+    middleware::{CspNonce, RequestLocale, RequestTz},
+    render::base_context,
     AppError, AppState,
 };
 
@@ -21,6 +23,9 @@ use crate::{
 pub async fn login_form(
     State(state): State<AppState>,
     Query(q): Query<NextQuery>,
+    Extension(locale): Extension<RequestLocale>,
+    Extension(tz): Extension<RequestTz>,
+    Extension(nonce): Extension<CspNonce>,
 ) -> Result<Response, AppError> {
     let html = state.templates.render(
         "login.html",
@@ -28,6 +33,7 @@ pub async fn login_form(
             next => safe_next(&q.next),
             error => "",
             dev_login_enabled => state.config.dev.enabled_email().is_some(),
+            ..base_context(&locale, &tz, &nonce),
         },
     )?;
     Ok(html.into_response())
@@ -43,6 +49,9 @@ pub async fn login(
     mut auth: AuthSession,
     State(state): State<AppState>,
     headers: HeaderMap,
+    Extension(locale): Extension<RequestLocale>,
+    Extension(tz): Extension<RequestTz>,
+    Extension(nonce): Extension<CspNonce>,
     Form(creds): Form<Credentials>,
 ) -> Result<Response, AppError> {
     if let Err(errs) = creds.validate() {
@@ -51,6 +60,9 @@ pub async fn login(
         // make the htmx swap dump raw text into the page on bad input.
         return render_login_form(
             &state,
+            &locale,
+            &tz,
+            &nonce,
             &creds.next,
             &format_validation_message(&errs),
             StatusCode::UNPROCESSABLE_ENTITY,
@@ -62,6 +74,9 @@ pub async fn login(
             metrics::counter!("auth_logins_total", "result" => "failure").increment(1);
             return render_login_form(
                 &state,
+                &locale,
+                &tz,
+                &nonce,
                 &creds.next,
                 "incorrect email or password",
                 StatusCode::UNAUTHORIZED,
@@ -82,10 +97,19 @@ pub async fn login(
 }
 
 /// `GET /signup` — render form.
-pub async fn signup_form(State(state): State<AppState>) -> Result<Response, AppError> {
-    let html = state
-        .templates
-        .render("signup.html", context! { error => "" })?;
+pub async fn signup_form(
+    State(state): State<AppState>,
+    Extension(locale): Extension<RequestLocale>,
+    Extension(tz): Extension<RequestTz>,
+    Extension(nonce): Extension<CspNonce>,
+) -> Result<Response, AppError> {
+    let html = state.templates.render(
+        "signup.html",
+        context! {
+            error => "",
+            ..base_context(&locale, &tz, &nonce),
+        },
+    )?;
     Ok(html.into_response())
 }
 
@@ -94,12 +118,18 @@ pub async fn signup(
     mut auth: AuthSession,
     State(state): State<AppState>,
     headers: HeaderMap,
+    Extension(locale): Extension<RequestLocale>,
+    Extension(tz): Extension<RequestTz>,
+    Extension(nonce): Extension<CspNonce>,
     Form(new): Form<NewUser>,
 ) -> Result<Response, AppError> {
     if let Err(errs) = new.validate() {
         metrics::counter!("auth_signups_total", "result" => "failure").increment(1);
         return render_signup_form(
             &state,
+            &locale,
+            &tz,
+            &nonce,
             &format_validation_message(&errs),
             StatusCode::UNPROCESSABLE_ENTITY,
         );
@@ -111,6 +141,9 @@ pub async fn signup(
             metrics::counter!("auth_signups_total", "result" => "failure").increment(1);
             return render_signup_form(
                 &state,
+                &locale,
+                &tz,
+                &nonce,
                 "an account with that email already exists",
                 StatusCode::CONFLICT,
             );
@@ -143,6 +176,9 @@ pub async fn logout(mut auth: AuthSession, headers: HeaderMap) -> Result<Respons
 
 fn render_login_form(
     state: &AppState,
+    locale: &RequestLocale,
+    tz: &RequestTz,
+    nonce: &CspNonce,
     next: &Option<String>,
     msg: &str,
     status: StatusCode,
@@ -153,6 +189,7 @@ fn render_login_form(
             next => safe_next(next),
             error => msg,
             dev_login_enabled => state.config.dev.enabled_email().is_some(),
+            ..base_context(locale, tz, nonce),
         },
     )?;
     // HX-Retarget=body + HX-Reswap=outerHTML tells htmx to swap the whole page,
@@ -162,12 +199,19 @@ fn render_login_form(
 
 fn render_signup_form(
     state: &AppState,
+    locale: &RequestLocale,
+    tz: &RequestTz,
+    nonce: &CspNonce,
     msg: &str,
     status: StatusCode,
 ) -> Result<Response, AppError> {
-    let html = state
-        .templates
-        .render("signup.html", context! { error => msg })?;
+    let html = state.templates.render(
+        "signup.html",
+        context! {
+            error => msg,
+            ..base_context(locale, tz, nonce),
+        },
+    )?;
     Ok((status, hx_full_swap(), html).into_response())
 }
 
