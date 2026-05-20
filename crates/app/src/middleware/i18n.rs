@@ -36,9 +36,12 @@ pub async fn i18n_middleware(mut req: Request<Body>, next: Next) -> Response {
         }
         UTC
     });
-    metrics::counter!("i18n_locale_total", "locale" => locale.to_string()).increment(1);
+    // Record only the base language subtag so cookie/profile values like
+    // `fr-CA` or `en-US` don't leak into the Prometheus label space.
+    let lang = locale.language.as_str().to_owned();
+    metrics::counter!("i18n_locale_total", "locale" => lang.clone()).increment(1);
     tracing::Span::current()
-        .record("request.locale", locale.to_string().as_str())
+        .record("request.locale", lang.as_str())
         .record("request.tz", tz.name());
     req.extensions_mut().insert(RequestLocale(locale));
     req.extensions_mut().insert(RequestTz(tz));
