@@ -91,18 +91,38 @@ async fn user_verify_unknown_email_is_timing_equalized() {
     let _ = repo.verify("carol@example.com", "warmup").await.unwrap();
     let _ = repo.verify("unknown@example.com", "warmup").await.unwrap();
 
-    let t1 = Instant::now();
-    let _ = repo.verify("carol@example.com", "wrong").await.unwrap();
-    let dt_known = t1.elapsed();
-    let t2 = Instant::now();
-    let _ = repo.verify("ghost@example.com", "wrong").await.unwrap();
-    let dt_unknown = t2.elapsed();
+    // Sample N times and compare medians. Both paths should spend the same
+    // CPU time on argon2 (the unknown path runs against a dummy hash to
+    // equalize timing). We compare the ratio rather than an absolute bound
+    // so the test is robust to runner speed — a fast laptop and a slow CI
+    // runner both produce ratios near 1.0 when the defense is intact.
+    // A dropped dummy hash makes the unknown path skip argon2 entirely,
+    // producing a ~50x ratio; the 2x bound below comfortably catches that.
+    const SAMPLES: usize = 5;
+    let mut known = Vec::with_capacity(SAMPLES);
+    let mut unknown = Vec::with_capacity(SAMPLES);
+    for _ in 0..SAMPLES {
+        let t = Instant::now();
+        let _ = repo.verify("carol@example.com", "wrong").await.unwrap();
+        known.push(t.elapsed());
+        let t = Instant::now();
+        let _ = repo.verify("ghost@example.com", "wrong").await.unwrap();
+        unknown.push(t.elapsed());
+    }
+    known.sort();
+    unknown.sort();
+    let med_known = known[SAMPLES / 2];
+    let med_unknown = unknown[SAMPLES / 2];
 
-    let diff = dt_known.abs_diff(dt_unknown);
-    // Generous upper bound; both should be dominated by argon2.
+    let (smaller, larger) = if med_known <= med_unknown {
+        (med_known, med_unknown)
+    } else {
+        (med_unknown, med_known)
+    };
+    let ratio = larger.as_secs_f64() / smaller.as_secs_f64();
     assert!(
-        diff < std::time::Duration::from_millis(100),
-        "timing diff too large: known={dt_known:?} unknown={dt_unknown:?}"
+        ratio < 2.0,
+        "timing diverged: known median={med_known:?}, unknown median={med_unknown:?}, ratio={ratio:.2}"
     );
 }
 
