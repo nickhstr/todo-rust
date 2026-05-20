@@ -64,7 +64,7 @@ pub async fn login(
             &tz,
             &nonce,
             &creds.next,
-            &format_validation_message(&errs),
+            &format_validation_message(&state, &locale.0, &errs),
             StatusCode::UNPROCESSABLE_ENTITY,
         );
     }
@@ -78,7 +78,7 @@ pub async fn login(
                 &tz,
                 &nonce,
                 &creds.next,
-                "incorrect email or password",
+                &state.locales.lookup(&locale.0, "validation-invalid-credentials", None),
                 StatusCode::UNAUTHORIZED,
             );
         }
@@ -130,7 +130,7 @@ pub async fn signup(
             &locale,
             &tz,
             &nonce,
-            &format_validation_message(&errs),
+            &format_validation_message(&state, &locale.0, &errs),
             StatusCode::UNPROCESSABLE_ENTITY,
         );
     }
@@ -144,7 +144,7 @@ pub async fn signup(
                 &locale,
                 &tz,
                 &nonce,
-                "an account with that email already exists",
+                &state.locales.lookup(&locale.0, "validation-account-exists", None),
                 StatusCode::CONFLICT,
             );
         }
@@ -222,22 +222,26 @@ fn hx_full_swap() -> [(header::HeaderName, &'static str); 2] {
     ]
 }
 
-fn format_validation_message(errs: &validator::ValidationErrors) -> String {
+fn format_validation_message(
+    state: &AppState,
+    locale: &unic_langid::LanguageIdentifier,
+    errs: &validator::ValidationErrors,
+) -> String {
     let mut parts = Vec::new();
-    for (field, kind) in errs.field_errors() {
+    for (_field, kind) in errs.field_errors() {
         for e in kind {
-            let msg = e
+            let id = e
                 .message
                 .as_ref()
                 .map(std::string::ToString::to_string)
                 .unwrap_or_else(|| e.code.to_string());
-            parts.push(format!("{field}: {msg}"));
+            parts.push(state.locales.lookup(locale, &id, None));
         }
     }
     if parts.is_empty() {
-        "please check your input".into()
+        state.locales.lookup(locale, "validation-generic", None)
     } else {
-        parts.join("; ")
+        parts.join(" ")
     }
 }
 

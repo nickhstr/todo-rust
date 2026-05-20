@@ -50,17 +50,17 @@ pub struct User {
 
 #[derive(Debug, Clone, Deserialize, Validate)]
 pub struct NewUser {
-    #[validate(email(message = "invalid email"))]
+    #[validate(email(message = "validation-email-invalid"))]
     pub email: String,
-    #[validate(length(min = 12, max = 256, message = "password must be 12–256 characters"))]
+    #[validate(length(min = 12, max = 256, message = "validation-password-too-short"))]
     pub password: String,
 }
 
 #[derive(Debug, Clone, Deserialize, Validate)]
 pub struct Credentials {
-    #[validate(email(message = "invalid email"))]
+    #[validate(email(message = "validation-email-invalid"))]
     pub email: String,
-    #[validate(length(min = 1, max = 256))]
+    #[validate(length(min = 1, max = 256, message = "validation-password-empty"))]
     pub password: String,
     #[serde(default)]
     pub next: Option<String>,

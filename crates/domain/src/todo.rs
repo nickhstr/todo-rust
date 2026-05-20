@@ -49,13 +49,13 @@ pub struct Todo {
 
 #[derive(Debug, Clone, Deserialize, Validate)]
 pub struct NewTodo {
-    #[validate(length(min = 1, max = 280, message = "title must be 1–280 characters"))]
+    #[validate(length(min = 1, max = 280, message = "validation-todo-title-length"))]
     pub title: String,
 }
 
 #[derive(Debug, Clone, Default, Deserialize, Validate)]
 pub struct TodoUpdate {
-    #[validate(length(min = 1, max = 280, message = "title must be 1–280 characters"))]
+    #[validate(length(min = 1, max = 280, message = "validation-todo-title-length"))]
     pub title: Option<String>,
     pub completed: Option<bool>,
 }
