@@ -73,7 +73,7 @@ pub async fn spawn_with(configure: impl FnOnce(&mut Config)) -> TestServer {
         .unwrap()
         .join("locales");
     let locales = todo_i18n::Locales::from_dir(locales_dir).expect("load locales");
-    let assets = std::sync::Arc::new(todo_i18n::Assets::dev(cfg.static_dir.clone()));
+    let assets = std::sync::Arc::new(todo_assets::Assets::dev(cfg.static_dir.clone()));
     let helpers = Helpers {
         locales: locales.clone(),
         assets: assets.clone(),
