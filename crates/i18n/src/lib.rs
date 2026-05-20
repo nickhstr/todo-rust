@@ -1,7 +1,8 @@
 //! Internationalization and timezone-aware datetime formatting. The
 //! minijinja helpers in this crate need `todo_assets::Assets` to
-//! register the `asset()` helper; that dependency goes away once
-//! the helper itself moves into `todo-assets`.
+//! register the `asset()` helper; that dependency on `todo-assets`
+//! goes away once the `asset()` helper itself moves out of this crate
+//! into `todo-assets` in Task 4 of the refactor.
 
 pub mod datetime;
 pub mod locale;

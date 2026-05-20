@@ -20,10 +20,12 @@ icu              = { workspace = true }
 minijinja        = { workspace = true }
 serde            = { workspace = true }
 serde_json       = { workspace = true }
-todo-assets      = { workspace = true }
 thiserror        = { workspace = true }
 tracing          = { workspace = true }
 metrics          = { workspace = true }
+
+# Internal crates (transient — removed in Task 4 once the asset() helper moves out).
+todo-assets = { workspace = true }
 
 [dev-dependencies]
 tempfile = { workspace = true }
