@@ -17,9 +17,15 @@ pub struct UpdateLocale {
 }
 
 /// `POST /preferences/locale` — set the user's preferred locale.
-/// Writes a `locale` cookie (anonymous users) and persists to
-/// `users.locale` for authenticated users. Returns `HX-Refresh: true`
-/// so htmx triggers a full reload in the new locale.
+/// Writes a `locale` cookie (and persists to `users.locale` for
+/// authenticated users), then 303s back to Referer so the browser
+/// reloads the page in the new locale.
+///
+/// htmx 4 beta3 does NOT honor `HX-Refresh` or `HX-Redirect` response
+/// headers (verified against the vendored source), so we use classic
+/// HTTP redirect semantics here. The base.html switcher submits via a
+/// plain `<form>` (with Alpine wiring the change event) rather than
+/// htmx so the browser follows the 303 naturally.
 pub async fn update_locale(
     auth: AuthSession,
     State(state): State<AppState>,
@@ -51,21 +57,14 @@ pub async fn update_locale(
     );
     headers.insert(header::SET_COOKIE, cookie.parse().expect("valid cookie"));
 
-    // htmx callers expect HX-Refresh; plain-form callers get a regular
-    // redirect so they don't end up staring at a blank page.
-    if request_headers.get("HX-Request").is_some() {
-        headers.insert("HX-Refresh", "true".parse().expect("valid header"));
-        Ok((StatusCode::NO_CONTENT, headers).into_response())
-    } else {
-        let target = request_headers
-            .get(header::REFERER)
-            .and_then(|v| v.to_str().ok())
-            .map(str::to_owned)
-            .unwrap_or_else(|| "/".to_owned());
-        headers.insert(
-            header::LOCATION,
-            target.parse().unwrap_or_else(|_| "/".parse().unwrap()),
-        );
-        Ok((StatusCode::SEE_OTHER, headers).into_response())
-    }
+    let target = request_headers
+        .get(header::REFERER)
+        .and_then(|v| v.to_str().ok())
+        .map(str::to_owned)
+        .unwrap_or_else(|| "/".to_owned());
+    headers.insert(
+        header::LOCATION,
+        target.parse().unwrap_or_else(|_| "/".parse().unwrap()),
+    );
+    Ok((StatusCode::SEE_OTHER, headers).into_response())
 }

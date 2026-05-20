@@ -38,31 +38,7 @@ async fn cookie_overrides_accept_language() {
 }
 
 #[tokio::test]
-async fn htmx_switcher_sets_cookie_and_refreshes() {
-    let server = common::spawn().await;
-    let res = server
-        .client
-        .post(format!("{}/preferences/locale", server.base_url))
-        .header("HX-Request", "true")
-        .form(&[("locale", "de")])
-        .send()
-        .await
-        .unwrap();
-    assert_eq!(res.status(), 204);
-    let set_cookie = res
-        .headers()
-        .get("set-cookie")
-        .unwrap()
-        .to_str()
-        .unwrap()
-        .to_owned();
-    assert!(set_cookie.starts_with("locale=de"));
-    let hx_refresh = res.headers().get("hx-refresh");
-    assert_eq!(hx_refresh.map(|v| v.to_str().unwrap()), Some("true"));
-}
-
-#[tokio::test]
-async fn plain_form_switcher_redirects() {
+async fn switcher_sets_cookie_and_redirects_to_referer() {
     let server = common::spawn().await;
     let res = server
         .client
@@ -80,6 +56,21 @@ async fn plain_form_switcher_redirects() {
     assert!(location.ends_with("/login"), "got: {location}");
     let set_cookie = res.headers().get("set-cookie").unwrap().to_str().unwrap();
     assert!(set_cookie.starts_with("locale=de"));
+}
+
+#[tokio::test]
+async fn switcher_without_referer_redirects_to_root() {
+    let server = common::spawn().await;
+    let res = server
+        .client
+        .post(format!("{}/preferences/locale", server.base_url))
+        .form(&[("locale", "fr")])
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(res.status(), 303);
+    let location = res.headers().get("location").unwrap().to_str().unwrap();
+    assert_eq!(location, "/");
 }
 
 #[tokio::test]
@@ -117,7 +108,6 @@ async fn profile_locale_wins_on_partial_routes() {
     let _ = server
         .client
         .post(format!("{}/preferences/locale", server.base_url))
-        .header("HX-Request", "true")
         .form(&[("locale", "fr")])
         .send()
         .await

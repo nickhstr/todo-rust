@@ -61,17 +61,25 @@
       </a>
 
       <nav class="flex items-center gap-5" aria-label="{{ t('nav-account') }}">
-        <form hx-post="/preferences/locale"
-              hx-trigger="change from:find select"
-              hx-swap="none"
-              class="inline-flex items-center">
+        {# Plain HTML form. Alpine fires the native submit() on change so the
+           browser POSTs, follows the 303 to Referer, and reloads in the new
+           locale — htmx 4 beta3 doesn't parse HX-Refresh/HX-Redirect, so we
+           rely on classic web semantics here. CSP forbids inline `onchange`
+           handlers; Alpine's `@change` is compiled via Function() under the
+           existing `'unsafe-eval'` allowance. The noscript button is the
+           fallback for users with JS disabled. #}
+        <form method="post" action="/preferences/locale" class="inline-flex items-center">
           <label class="sr-only" for="locale-select">{{ t("language-switcher-label") }}</label>
-          <select id="locale-select" name="locale" class="lang-switcher">
+          <select id="locale-select" name="locale" class="lang-switcher"
+                  @change="$el.form.submit()">
             <option value="en" {% if _locale == 'en' %}selected{% endif %}>English</option>
             <option value="es" {% if _locale == 'es' %}selected{% endif %}>Español</option>
             <option value="fr" {% if _locale == 'fr' %}selected{% endif %}>Français</option>
             <option value="de" {% if _locale == 'de' %}selected{% endif %}>Deutsch</option>
           </select>
+          <noscript>
+            <button type="submit" class="btn-link ml-2">{{ t("language-switcher-label") }}</button>
+          </noscript>
         </form>
 
         {% if user %}
