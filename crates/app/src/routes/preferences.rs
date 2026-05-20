@@ -17,15 +17,17 @@ pub struct UpdateLocale {
 }
 
 /// `POST /preferences/locale` — set the user's preferred locale.
-/// Writes a `locale` cookie (and persists to `users.locale` for
-/// authenticated users), then 303s back to Referer so the browser
-/// reloads the page in the new locale.
+/// Writes the `locale` cookie and (for authenticated users) persists
+/// it to `users.locale`.
 ///
-/// htmx 4 beta3 does NOT honor `HX-Refresh` or `HX-Redirect` response
-/// headers (verified against the vendored source), so we use classic
-/// HTTP redirect semantics here. The base.html switcher submits via a
-/// plain `<form>` (with Alpine wiring the change event) rather than
-/// htmx so the browser follows the 303 naturally.
+/// htmx callers (identified by `HX-Request`) get a 204 No Content;
+/// they fire `location.reload()` themselves via `hx-on::after:request`
+/// — htmx 4 beta3 doesn't parse `HX-Refresh`/`HX-Redirect` response
+/// headers, so the reload is wired in the template.
+///
+/// Plain form posts (the `<noscript>` fallback, or anyone hitting the
+/// endpoint without htmx) get a classic 303 to Referer so the browser
+/// follows naturally.
 pub async fn update_locale(
     auth: AuthSession,
     State(state): State<AppState>,
@@ -57,14 +59,18 @@ pub async fn update_locale(
     );
     headers.insert(header::SET_COOKIE, cookie.parse().expect("valid cookie"));
 
-    let target = request_headers
-        .get(header::REFERER)
-        .and_then(|v| v.to_str().ok())
-        .map(str::to_owned)
-        .unwrap_or_else(|| "/".to_owned());
-    headers.insert(
-        header::LOCATION,
-        target.parse().unwrap_or_else(|_| "/".parse().unwrap()),
-    );
-    Ok((StatusCode::SEE_OTHER, headers).into_response())
+    if request_headers.get("HX-Request").is_some() {
+        Ok((StatusCode::NO_CONTENT, headers).into_response())
+    } else {
+        let target = request_headers
+            .get(header::REFERER)
+            .and_then(|v| v.to_str().ok())
+            .map(str::to_owned)
+            .unwrap_or_else(|| "/".to_owned());
+        headers.insert(
+            header::LOCATION,
+            target.parse().unwrap_or_else(|_| "/".parse().unwrap()),
+        );
+        Ok((StatusCode::SEE_OTHER, headers).into_response())
+    }
 }

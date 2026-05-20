@@ -38,7 +38,27 @@ async fn cookie_overrides_accept_language() {
 }
 
 #[tokio::test]
-async fn switcher_sets_cookie_and_redirects_to_referer() {
+async fn htmx_switcher_returns_204_and_sets_cookie() {
+    // htmx-driven switcher: the template's hx-on::after:request calls
+    // location.reload() on a 2xx, so the server just needs to confirm
+    // success and set the cookie.
+    let server = common::spawn().await;
+    let res = server
+        .client
+        .post(format!("{}/preferences/locale", server.base_url))
+        .header("HX-Request", "true")
+        .form(&[("locale", "de")])
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(res.status(), 204);
+    let set_cookie = res.headers().get("set-cookie").unwrap().to_str().unwrap();
+    assert!(set_cookie.starts_with("locale=de"));
+}
+
+#[tokio::test]
+async fn plain_form_switcher_redirects_to_referer() {
+    // <noscript> fallback path: classic 303 so the browser follows.
     let server = common::spawn().await;
     let res = server
         .client
@@ -59,7 +79,7 @@ async fn switcher_sets_cookie_and_redirects_to_referer() {
 }
 
 #[tokio::test]
-async fn switcher_without_referer_redirects_to_root() {
+async fn plain_form_switcher_without_referer_redirects_to_root() {
     let server = common::spawn().await;
     let res = server
         .client

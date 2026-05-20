@@ -68,14 +68,19 @@
            handlers; Alpine's `@change` is compiled via Function() under the
            existing `'unsafe-eval'` allowance. The noscript button is the
            fallback for users with JS disabled. #}
-        {# x-data="{}" is the minimal Alpine bootstrap — Alpine ignores
-           directives outside an x-data scope, so without this the @change
-           handler is dead. #}
-        <form method="post" action="/preferences/locale" class="inline-flex items-center"
-              x-data="{}">
+        {# The <form> is the no-JS fallback (the server 303s back to Referer
+           for a plain POST). When htmx is active, the select makes the POST
+           directly and we reload on success — htmx 4 beta3 doesn't parse
+           HX-Refresh/HX-Redirect response headers, so the reload is wired
+           client-side. #}
+        <form method="post" action="/preferences/locale" class="inline-flex items-center">
           <label class="sr-only" for="locale-select">{{ t("language-switcher-label") }}</label>
           <select id="locale-select" name="locale" class="lang-switcher"
-                  @change="$el.form.submit()">
+                  hx-post="/preferences/locale"
+                  hx-trigger="change"
+                  hx-include="this"
+                  hx-swap="none"
+                  hx-on::after:request="if (event.detail.ctx.response.ok) location.reload()">
             <option value="en" {% if _locale == 'en' %}selected{% endif %}>English</option>
             <option value="es" {% if _locale == 'es' %}selected{% endif %}>Español</option>
             <option value="fr" {% if _locale == 'fr' %}selected{% endif %}>Français</option>
