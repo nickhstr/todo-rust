@@ -63,7 +63,7 @@ Key differences from htmx 1/2:
 | `event.detail.successful` | **removed** | Use `hx-on::after:swap` instead (only fires on success) |
 | `event.detail.xhr` | `event.detail.ctx.response` | Response object moved under `ctx` |
 
-**Response headers** (`HX-Redirect`, `HX-Retarget`, `HX-Reswap`, etc.) work the same — htmx 4 parses all `HX-*` response headers generically.
+**Response headers** are NOT all handled — verified against the vendored source, htmx 4 beta3 only recognizes the request-context headers (`HX-Boosted`, `HX-Current-URL`, `HX-History-Restore-Request`, `HX-Request`, `HX-Request-Type`, `HX-Source`, `HX-Target`). **`HX-Refresh`, `HX-Redirect`, `HX-Retarget`, and `HX-Reswap` are silently dropped.** If you need to make htmx reload the page after a POST, return a 303 + `Location` and have the form submit be a plain `<form>` (the browser follows the redirect). The language switcher in `templates/base.html` is the worked example.
 
 **Swap spec modifiers** (`swap:200ms`, `settle:100ms`) still work — `parseInterval` handles `ms`/`s`/`m` suffixes.
 
