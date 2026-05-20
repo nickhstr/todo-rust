@@ -78,11 +78,10 @@ impl From<StorageError> for AppError {
     }
 }
 
-impl From<validator::ValidationErrors> for AppError {
-    fn from(value: validator::ValidationErrors) -> Self {
-        Self::Validation(format_validation(&value))
-    }
-}
+// Deliberately NO `From<validator::ValidationErrors> for AppError`.
+// `?` would otherwise stringify Fluent ids into the response body and skip
+// localization. Handlers must call `render::localize_validation_errors`
+// explicitly before turning the result into an `AppError::Validation`.
 
 impl From<minijinja::Error> for AppError {
     fn from(err: minijinja::Error) -> Self {
@@ -94,24 +93,5 @@ impl From<minijinja::Error> for AppError {
 impl From<anyhow::Error> for AppError {
     fn from(err: anyhow::Error) -> Self {
         Self::Internal(err.to_string())
-    }
-}
-
-fn format_validation(errs: &validator::ValidationErrors) -> String {
-    let mut parts = Vec::new();
-    for (field, kind) in errs.field_errors() {
-        for e in kind {
-            let msg = e
-                .message
-                .as_ref()
-                .map(std::string::ToString::to_string)
-                .unwrap_or_else(|| e.code.to_string());
-            parts.push(format!("{field}: {msg}"));
-        }
-    }
-    if parts.is_empty() {
-        "validation failed".into()
-    } else {
-        parts.join("; ")
     }
 }

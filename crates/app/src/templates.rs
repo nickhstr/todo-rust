@@ -4,6 +4,7 @@ use axum::response::Html;
 use minijinja::{path_loader, value::Value, Environment};
 use minijinja_autoreload::AutoReloader;
 use serde::Serialize;
+use todo_i18n::minijinja_helpers::{register, Helpers};
 
 use crate::error::AppError;
 
@@ -16,17 +17,21 @@ pub enum Templates {
 }
 
 impl Templates {
-    pub fn production(dir: &PathBuf) -> Self {
+    pub fn production(dir: &PathBuf, helpers: Helpers) -> Self {
         let mut env = Environment::new();
         env.set_loader(path_loader(dir));
+        register(&mut env, helpers);
         Self::Static(Arc::new(env))
     }
 
-    pub fn dev(dir: PathBuf) -> Self {
+    pub fn dev(dir: PathBuf, helpers: Helpers) -> Self {
+        let helpers_for_reload = helpers.clone();
         let reloader = AutoReloader::new(move |notifier| {
             let dir = dir.clone();
+            let helpers = helpers_for_reload.clone();
             let mut env = Environment::new();
             env.set_loader(path_loader(&dir));
+            register(&mut env, helpers);
             notifier.watch_path(&dir, true);
             Ok(env)
         });

@@ -2,6 +2,7 @@ use std::{sync::Arc, time::Duration};
 
 use fred::prelude::RedisPool;
 use todo_domain::{Todo, UserId};
+use todo_i18n::{Assets, Locales};
 use todo_storage::{DbPool, StorageError, TodoRepository, UserRepository};
 
 use crate::{cache::Cache, templates::Templates, Config};
@@ -16,6 +17,8 @@ pub struct AppState {
     pub templates: Templates,
     pub cache: Cache,
     pub redis: Option<RedisPool>,
+    pub locales: Locales,
+    pub assets: Arc<Assets>,
 }
 
 impl AppState {
@@ -25,6 +28,8 @@ impl AppState {
         templates: Templates,
         cache: Cache,
         redis: Option<RedisPool>,
+        locales: Locales,
+        assets: Arc<Assets>,
     ) -> Self {
         let users = UserRepository::new(db.clone());
         let todos = TodoRepository::new(db.clone());
@@ -36,6 +41,8 @@ impl AppState {
             templates,
             cache,
             redis,
+            locales,
+            assets,
         }
     }
 

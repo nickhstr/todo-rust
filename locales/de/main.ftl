@@ -1,0 +1,9 @@
+app-name = Stilles Tagebuch
+app-tagline = Bd. I · Nr. 1
+font-credit = Gesetzt in Fraunces und Plex
+printed-in-rust = Gedruckt in Rust
+nav-account = Konto
+nav-login = Anmelden
+nav-signup = Registrieren
+nav-logout = Abmelden
+language-switcher-label = Sprache

@@ -1,0 +1,9 @@
+app-name = Registre Tranquille
+app-tagline = Vol. I · Nº 1
+font-credit = Composé en Fraunces et Plex
+printed-in-rust = Imprimé en Rust
+nav-account = Compte
+nav-login = Connexion
+nav-signup = Inscription
+nav-logout = Déconnexion
+language-switcher-label = Langue

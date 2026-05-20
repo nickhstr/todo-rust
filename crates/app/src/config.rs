@@ -13,6 +13,8 @@ pub struct Config {
     pub observability: ObservabilityConfig,
     pub templates_dir: PathBuf,
     pub static_dir: PathBuf,
+    #[serde(default = "default_locales_dir")]
+    pub locales_dir: PathBuf,
     #[serde(default = "default_template_autoreload")]
     pub template_autoreload: bool,
     #[serde(default)]
@@ -172,6 +174,10 @@ fn default_template_autoreload() -> bool {
     false
 }
 
+fn default_locales_dir() -> PathBuf {
+    PathBuf::from("locales")
+}
+
 impl Default for Config {
     fn default() -> Self {
         Self {
@@ -196,6 +202,7 @@ impl Default for Config {
             observability: ObservabilityConfig::default(),
             templates_dir: PathBuf::from("templates"),
             static_dir: PathBuf::from("static"),
+            locales_dir: PathBuf::from("locales"),
             template_autoreload: false,
             rate_limit: RateLimitConfig::default(),
             dev: DevConfig::default(),
@@ -276,6 +283,10 @@ impl Config {
             .set_default(
                 "static_dir",
                 defaults.static_dir.to_string_lossy().to_string(),
+            )?
+            .set_default(
+                "locales_dir",
+                defaults.locales_dir.to_string_lossy().to_string(),
             )?
             .set_default("template_autoreload", defaults.template_autoreload)?
             .set_default("rate_limit.enabled", defaults.rate_limit.enabled)?

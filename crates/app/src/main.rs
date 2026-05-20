@@ -64,10 +64,27 @@ async fn main() -> anyhow::Result<()> {
         Duration::from_secs(config.cache.default_ttl_secs),
     );
 
-    let templates = if config.template_autoreload {
-        Templates::dev(config.templates_dir.clone())
+    let locales = todo_i18n::Locales::from_dir(config.locales_dir.clone())
+        .map_err(|e| anyhow::anyhow!("load locales: {e}"))?;
+
+    let assets = if config.template_autoreload {
+        Arc::new(todo_i18n::Assets::dev(config.static_dir.clone()))
     } else {
-        Templates::production(&config.templates_dir)
+        Arc::new(
+            todo_i18n::Assets::production(config.static_dir.clone())
+                .map_err(|e| anyhow::anyhow!("scan static dir: {e}"))?,
+        )
+    };
+
+    let helpers = todo_i18n::minijinja_helpers::Helpers {
+        locales: locales.clone(),
+        assets: assets.clone(),
+    };
+
+    let templates = if config.template_autoreload {
+        Templates::dev(config.templates_dir.clone(), helpers)
+    } else {
+        Templates::production(&config.templates_dir, helpers)
     };
 
     let state = AppState::new(
@@ -76,6 +93,8 @@ async fn main() -> anyhow::Result<()> {
         templates,
         cache,
         redis,
+        locales,
+        assets,
     );
 
     #[cfg(debug_assertions)]

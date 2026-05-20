@@ -10,7 +10,7 @@
             hx-post="/todos/{{ todo.id }}/toggle"
             hx-target="closest li"
             hx-swap="outerHTML"
-            aria-label="{{ 'Mark as open' if todo.completed else 'Mark as done' }}"
+            aria-label="{{ t('todo-mark-open') if todo.completed else t('todo-mark-done') }}"
             aria-pressed="{{ 'true' if todo.completed else 'false' }}">
     </button>
   </form>
@@ -20,11 +20,11 @@
     <p class="todo-title">{{ todo.title }}</p>
     <span class="todo-meta">
       {%- if todo.completed -%}
-        Done &middot;
-        {%- if todo.updated_at %} {{ todo.updated_at }}{% endif -%}
+        {{ t("todo-status-done") }} &middot;
+        {%- if todo.updated_at %} {{ datetime(todo.updated_at, style="medium") }}{% endif -%}
       {%- else -%}
-        Entered &middot;
-        {%- if todo.created_at %} {{ todo.created_at }}{% endif -%}
+        {{ t("todo-status-entered") }} &middot;
+        {%- if todo.created_at %} {{ datetime(todo.created_at, style="medium") }}{% endif -%}
       {%- endif -%}
     </span>
   </div>
@@ -36,8 +36,8 @@
             hx-delete="/todos/{{ todo.id }}"
             hx-target="closest li"
             hx-swap="outerHTML swap:200ms"
-            hx-confirm="Strike this entry from the ledger?"
-            aria-label="Delete entry">
+            hx-confirm="{{ t('todo-confirm-delete') }}"
+            aria-label="{{ t('todo-delete-aria') }}">
       {# Hairline X — drawn, not iconographic. #}
       <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true" focusable="false">
         <path d="M1.5 1.5 L12.5 12.5 M12.5 1.5 L1.5 12.5"

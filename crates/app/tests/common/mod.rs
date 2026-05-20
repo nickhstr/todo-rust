@@ -10,6 +10,7 @@ use time::Duration as TimeDuration;
 use todo_app::{
     auth::AuthBackend, build_router, cache::Cache, templates::Templates, AppState, Config,
 };
+use todo_i18n::minijinja_helpers::Helpers;
 use todo_observability::install_metrics_recorder;
 use todo_storage::{pool::build_pool, run_migrations};
 use tokio::{net::TcpListener, task::JoinHandle};
@@ -65,7 +66,20 @@ pub async fn spawn_with(configure: impl FnOnce(&mut Config)) -> TestServer {
     let session_store = PostgresStore::new(pool.clone());
     session_store.migrate().await.expect("session migrate");
 
-    let templates = Templates::production(&cfg.templates_dir);
+    let locales_dir = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .unwrap()
+        .parent()
+        .unwrap()
+        .join("locales");
+    let locales = todo_i18n::Locales::from_dir(locales_dir).expect("load locales");
+    let assets = std::sync::Arc::new(todo_i18n::Assets::dev(cfg.static_dir.clone()));
+    let helpers = Helpers {
+        locales: locales.clone(),
+        assets: assets.clone(),
+    };
+
+    let templates = Templates::production(&cfg.templates_dir, helpers);
     let cache = Cache::disabled();
     let state = AppState::new(
         Arc::new(cfg.clone()),
@@ -73,6 +87,8 @@ pub async fn spawn_with(configure: impl FnOnce(&mut Config)) -> TestServer {
         templates,
         cache,
         None,
+        locales,
+        assets,
     );
 
     // Per-test independent Prometheus recorder. install_recorder() is global, so
