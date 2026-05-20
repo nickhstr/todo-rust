@@ -5,6 +5,7 @@ pub mod cache;
 pub mod config;
 pub mod error;
 pub mod middleware;
+pub mod render;
 pub mod router;
 pub mod routes;
 pub mod state;
