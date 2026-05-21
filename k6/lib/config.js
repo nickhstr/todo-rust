@@ -9,8 +9,8 @@ import { textSummary } from 'https://jslib.k6.io/k6-summary/0.0.2/index.js';
 export const BASE_URL = __ENV.BASE_URL || 'http://app:3000';
 
 export const SHARED_THRESHOLDS = {
-  http_req_failed: ['rate<0.01'],
-  checks: ['rate>0.99'],
+    http_req_failed: ['rate<0.01'],
+    checks: ['rate>0.99'],
 };
 
 // Build a `handleSummary` that writes the full k6 summary, plus a small
@@ -18,20 +18,20 @@ export const SHARED_THRESHOLDS = {
 // /results/. Path is timestamped + sha-suffixed so concurrent or repeat
 // runs don't overwrite each other.
 export function makeSummaryWriter(scenario) {
-  return function handleSummary(data) {
-    const ts = new Date().toISOString().replace(/[:.]/g, '-');
-    const gitSha = __ENV.GIT_SHA || 'unknown';
-    const meta = {
-      scenario,
-      git_sha: gitSha,
-      base_url: BASE_URL,
-      finished_at: new Date().toISOString(),
-      test_run_duration_ms: data.state ? data.state.testRunDurationMs : null,
+    return function handleSummary(data) {
+        const ts = new Date().toISOString().replace(/[:.]/g, '-');
+        const gitSha = __ENV.GIT_SHA || 'unknown';
+        const meta = {
+            scenario,
+            git_sha: gitSha,
+            base_url: BASE_URL,
+            finished_at: new Date().toISOString(),
+            test_run_duration_ms: data.state ? data.state.testRunDurationMs : null,
+        };
+        return {
+            stdout: textSummary(data, { indent: ' ', enableColors: true }),
+            [`/results/summary-${scenario}-${ts}-${gitSha}.json`]:
+                JSON.stringify({ meta, ...data }, null, 2),
+        };
     };
-    return {
-      stdout: textSummary(data, { indent: ' ', enableColors: true }),
-      [`/results/summary-${scenario}-${ts}-${gitSha}.json`]:
-        JSON.stringify({ meta, ...data }, null, 2),
-    };
-  };
 }

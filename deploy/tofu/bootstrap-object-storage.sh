@@ -12,19 +12,19 @@ REGION="${REGION:-nbg1}"
 ENDPOINT="https://${REGION}.your-objectstorage.com"
 
 if ! command -v aws >/dev/null; then
-  echo "aws CLI required. brew install awscli" >&2
-  exit 1
+    echo "aws CLI required. brew install awscli" >&2
+    exit 1
 fi
 
 if [[ -z "${AWS_ACCESS_KEY_ID:-}" ]]; then
-  echo "Set AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY from a Hetzner Object Storage credential pair."
-  echo "Create one at: Console → Security → S3 credentials."
-  exit 1
+    echo "Set AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY from a Hetzner Object Storage credential pair."
+    echo "Create one at: Console → Security → S3 credentials."
+    exit 1
 fi
 
 aws --endpoint-url="$ENDPOINT" s3 mb "s3://${BUCKET}" --region "$REGION"
 aws --endpoint-url="$ENDPOINT" s3api put-bucket-versioning \
-  --bucket "$BUCKET" \
-  --versioning-configuration Status=Enabled
+--bucket "$BUCKET" \
+--versioning-configuration Status=Enabled
 
 echo "Bucket s3://${BUCKET} ready at ${ENDPOINT}"

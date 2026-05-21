@@ -48,7 +48,7 @@ migrate:
 
 # Create a new sqlx migration. Usage: `just migrate-new add_thing`
 migrate-new name:
-    sqlx migrate add --source migrations {{name}}
+    sqlx migrate add --source migrations {{ name }}
 
 prepare:
     cargo sqlx prepare --workspace -- --bin todo-app
@@ -84,7 +84,7 @@ restart: down up-d
 
 # Tail one service's logs. `just logs app` / `just logs otel-collector` / etc.
 logs svc='app':
-    docker compose -f docker/compose.yaml -f docker/compose.dev.yaml logs -f {{svc}}
+    docker compose -f docker/compose.yaml -f docker/compose.dev.yaml logs -f {{ svc }}
 
 # Tail every service interleaved.
 logs-all:
@@ -114,19 +114,19 @@ open:
 
 # Generate N requests against /healthz to exercise the metric + trace + log pipelines.
 traffic n='30':
-    @for i in $(seq 1 {{n}}); do curl -sf http://localhost:3000/healthz > /dev/null; done; \
-        echo "fired {{n}} requests against /healthz"
+    @for i in $(seq 1 {{ n }}); do curl -sf http://localhost:3000/healthz > /dev/null; done; \
+        echo "fired {{ n }} requests against /healthz"
 
 # Quick Prometheus query. Usage: `just prom 'sum(rate(http_requests_total[1m]))'`
 prom query:
-    @curl -sG --data-urlencode 'query={{query}}' http://localhost:9090/api/v1/query \
+    @curl -sG --data-urlencode 'query={{ query }}' http://localhost:9090/api/v1/query \
         | python3 -m json.tool
 
 # Quick LogQL query over the last 5 minutes.
 # Usage: `just loki '{service_name="todo-app"} | trace_id != ""'`
 loki query limit='10':
-    @curl -sG --data-urlencode 'query={{query}}' \
-              --data-urlencode 'limit={{limit}}' \
+    @curl -sG --data-urlencode 'query={{ query }}' \
+              --data-urlencode 'limit={{ limit }}' \
               --data-urlencode 'direction=backward' \
               --data-urlencode "start=$(($(date +%s) - 300))000000000" \
               http://localhost:3100/loki/api/v1/query_range \
@@ -135,7 +135,7 @@ loki query limit='10':
 # Recent Tempo traces for todo-app.
 tempo limit='5':
     @curl -sG --data-urlencode 'tags=service.name=todo-app' \
-              --data-urlencode 'limit={{limit}}' \
+              --data-urlencode 'limit={{ limit }}' \
               --data-urlencode "start=$(($(date +%s) - 300))" \
               --data-urlencode "end=$(date +%s)" \
               http://localhost:3200/api/search \
@@ -184,9 +184,9 @@ k6 scenario: k6-up
         -e GIT_SHA=$(git rev-parse --short HEAD) \
         k6 run \
         --out experimental-prometheus-rw=http://prometheus:9090/api/v1/write \
-        --tag scenario={{scenario}} \
+        --tag scenario={{ scenario }} \
         --tag git_sha=$(git rev-parse --short HEAD) \
-        /scripts/scenarios/{{scenario}}.js
+        /scripts/scenarios/{{ scenario }}.js
 
 # Convenience wrappers.
 k6-smoke: (k6 "smoke")
@@ -261,21 +261,21 @@ k8s-validate:
 # Logs for the staging or prod app pod.
 k8s-logs env='staging':
     KUBECONFIG=~/.kube/config-todo \
-        kubectl -n todo-app-{{env}} logs -f deployment/todo-app
+        kubectl -n todo-app-{{ env }} logs -f deployment/todo-app
 
 # Status snapshot for an environment.
 k8s-status env='staging':
-    @KUBECONFIG=~/.kube/config-todo kubectl -n todo-app-{{env}} get all,certificate,externalsecret,cluster.postgresql.cnpg.io
+    @KUBECONFIG=~/.kube/config-todo kubectl -n todo-app-{{ env }} get all,certificate,externalsecret,cluster.postgresql.cnpg.io
 
 # psql shell into the in-cluster Postgres primary.
 k8s-psql env='staging':
     KUBECONFIG=~/.kube/config-todo \
-        kubectl -n todo-app-{{env}} exec -it todo-postgres-1 -c postgres -- psql -U todo -d todo
+        kubectl -n todo-app-{{ env }} exec -it todo-postgres-1 -c postgres -- psql -U todo -d todo
 
 # Trigger a hard refresh of an ArgoCD Application.
 k8s-sync app:
     KUBECONFIG=~/.kube/config-todo \
-        kubectl -n argocd patch application {{app}} \
+        kubectl -n argocd patch application {{ app }} \
             --type=merge --patch '{"metadata":{"annotations":{"argocd.argoproj.io/refresh":"hard"}}}'
 
 # --- Local k3d parity ---

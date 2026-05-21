@@ -21,15 +21,15 @@ SHA256_macos_arm64="56b4bbc62dbdc4614a78930d9c6986423a2ec63e4e640144a59a5d95c914
 die() { printf 'install-tailwind: %s\n' "$*" >&2; exit 1; }
 
 case "$(uname -s)" in
-  Linux)  os=linux ;;
-  Darwin) os=macos ;;
-  *)      die "unsupported OS: $(uname -s) (supported: Linux, Darwin)" ;;
+    Linux)  os=linux ;;
+    Darwin) os=macos ;;
+    *)      die "unsupported OS: $(uname -s) (supported: Linux, Darwin)" ;;
 esac
 
 case "$(uname -m)" in
-  x86_64|amd64)  arch=x64 ;;
-  arm64|aarch64) arch=arm64 ;;
-  *)             die "unsupported arch: $(uname -m) (supported: x86_64, arm64)" ;;
+    x86_64|amd64)  arch=x64 ;;
+    arm64|aarch64) arch=arm64 ;;
+    *)             die "unsupported arch: $(uname -m) (supported: x86_64, arm64)" ;;
 esac
 
 asset="tailwindcss-${os}-${arch}"
@@ -39,17 +39,17 @@ eval "expected_sha=\${SHA256_${os}_${arch}}"
 # Cache check: skip download if binary exists and reports the pinned version.
 # Tailwind v4 prints the version on its --help banner.
 if [ -x "$INSTALL_DIR/tailwindcss" ] \
-   && "$INSTALL_DIR/tailwindcss" --help 2>&1 | grep -qF "$TAILWIND_VERSION"; then
-  exit 0
+&& "$INSTALL_DIR/tailwindcss" --help 2>&1 | grep -qF "$TAILWIND_VERSION"; then
+    exit 0
 fi
 
 # Pick a sha256 verifier: sha256sum on Linux, shasum on macOS.
 if command -v sha256sum >/dev/null 2>&1; then
-  sha_cmd="sha256sum"
+    sha_cmd="sha256sum"
 elif command -v shasum >/dev/null 2>&1; then
-  sha_cmd="shasum -a 256"
+    sha_cmd="shasum -a 256"
 else
-  die "no sha256 tool found (need sha256sum or shasum)"
+    die "no sha256 tool found (need sha256sum or shasum)"
 fi
 
 mkdir -p "$INSTALL_DIR"
@@ -62,9 +62,9 @@ curl -fL --retry 3 -o "$tmp" "$url" || die "curl failed for $url"
 
 actual_sha=$($sha_cmd "$tmp" | awk '{print $1}')
 if [ "$actual_sha" != "$expected_sha" ]; then
-  trap - EXIT
-  printf 'install-tailwind: partial download preserved at %s for inspection\n' "$tmp" >&2
-  die "SHA256 mismatch for ${asset}: expected ${expected_sha}, got ${actual_sha}"
+    trap - EXIT
+    printf 'install-tailwind: partial download preserved at %s for inspection\n' "$tmp" >&2
+    die "SHA256 mismatch for ${asset}: expected ${expected_sha}, got ${actual_sha}"
 fi
 
 chmod +x "$tmp"

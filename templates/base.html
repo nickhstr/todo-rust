@@ -1,129 +1,131 @@
 <!doctype html>
 <html lang="{{ _locale or 'en' }}">
+
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="color-scheme" content="light">
-  <title>{% block title %}{{ t("app-name") }}{% endblock %}</title>
-  <meta name="description" content="A small, quiet ledger for the day's intentions.">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="color-scheme" content="light">
+    <title>{% block title %}{{ t("app-name") }}{% endblock %}</title>
+    <meta name="description" content="A small, quiet ledger for the day's intentions.">
 
-  <link rel="stylesheet" href="{{ asset('css/app.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/app.css') }}">
 
-  {# A precision favicon: vermillion seal on warm paper. #}
-  <link rel="icon" type="image/svg+xml"
+    {# A precision favicon: vermillion seal on warm paper. #}
+    <link rel="icon" type="image/svg+xml"
         href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='4' fill='%23fbf7ee'/><circle cx='16' cy='16' r='5' fill='%23e34a2c'/></svg>">
 
-  {# Datetime upgrader. Runs synchronously before paint to avoid FOUC.
-     On first visit, also sets the `tz` cookie so subsequent renders use
-     the user's tz server-side. The CSP nonce gates this inline script. #}
-  <script nonce="{{ csp_nonce }}">
-    (() => {
-      const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
-      if (!document.cookie.split('; ').some(c => c.startsWith('tz='))) {
-        document.cookie = 'tz=' + tz + '; path=/; max-age=31536000; samesite=lax';
-      }
-      const locale = document.documentElement.lang || 'en';
-      const upgrade = (root) => {
-        for (const el of root.querySelectorAll('time[datetime]')) {
-          const style = el.dataset.style || 'medium';
-          const fmt = new Intl.DateTimeFormat(locale, {
-            dateStyle: style, timeStyle: 'short', timeZone: tz
-          });
-          el.textContent = fmt.format(new Date(el.dateTime));
-        }
-      };
-      // Running synchronously in <head>, the body hasn't been parsed yet,
-      // so document.querySelectorAll('time[datetime]') is empty. Re-run
-      // once the DOM is built, then keep upgrading htmx-swapped fragments.
-      document.addEventListener('DOMContentLoaded', () => {
-        upgrade(document);
-        document.body.addEventListener('htmx:after:swap', (e) => upgrade(e.target));
-      });
-    })();
-  </script>
+    {# Datetime upgrader. Runs synchronously before paint to avoid FOUC.
+    On first visit, also sets the `tz` cookie so subsequent renders use
+    the user's tz server-side. The CSP nonce gates this inline script. #}
+    <script nonce="{{ csp_nonce }}">
+        (() => {
+            const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+            if (!document.cookie.split('; ').some(c => c.startsWith('tz='))) {
+                document.cookie = 'tz=' + tz + '; path=/; max-age=31536000; samesite=lax';
+            }
+            const locale = document.documentElement.lang || 'en';
+            const upgrade = (root) => {
+                for (const el of root.querySelectorAll('time[datetime]')) {
+                    const style = el.dataset.style || 'medium';
+                    const fmt = new Intl.DateTimeFormat(locale, {
+                        dateStyle: style, timeStyle: 'short', timeZone: tz
+                    });
+                    el.textContent = fmt.format(new Date(el.dateTime));
+                }
+            };
+            // Running synchronously in <head>, the body hasn't been parsed yet,
+            // so document.querySelectorAll('time[datetime]') is empty. Re-run
+            // once the DOM is built, then keep upgrading htmx-swapped fragments.
+            document.addEventListener('DOMContentLoaded', () => {
+                upgrade(document);
+                document.body.addEventListener('htmx:after:swap', (e) => upgrade(e.target));
+            });
+        })();
+    </script>
 
-  {% block head %}{% endblock %}
+    {% block head %}{% endblock %}
 </head>
 
 <body class="antialiased" hx-ext="alpine-compat">
 
-  {# ---------- Header ---------- #}
-  <header class="pt-10 pb-8">
-    <div class="measure flex items-center justify-between gap-6">
-      <a href="/" class="group inline-flex items-center gap-3" aria-label="{{ t('app-name') }} — home">
-        <span class="seal" aria-hidden="true"></span>
-        <span class="flex flex-col leading-none">
-          <span class="font-display text-[1.0625rem] tracking-tight" style="font-weight: 500;">
-            {{ t("app-name") }}
-          </span>
-          <span class="eyebrow mt-1">{{ t("app-tagline") }}</span>
-        </span>
-      </a>
+    {# ---------- Header ---------- #}
+    <header class="pt-10 pb-8">
+        <div class="measure flex items-center justify-between gap-6">
+            <a href="/" class="group inline-flex items-center gap-3" aria-label="{{ t('app-name') }} — home">
+                <span class="seal" aria-hidden="true"></span>
+                <span class="flex flex-col leading-none">
+                    <span class="font-display text-[1.0625rem] tracking-tight" style="font-weight: 500;">
+                        {{ t("app-name") }}
+                    </span>
+                    <span class="eyebrow mt-1">{{ t("app-tagline") }}</span>
+                </span>
+            </a>
 
-      <nav class="flex items-center gap-5" aria-label="{{ t('nav-account') }}">
-        {# Language switcher. With JS on, htmx fires the POST when the <select>
-           changes (hx-trigger="change", hx-include="this") and the server's
-           `HX-Refresh: true` response header tells htmx to reload the page.
-           No client-side reload code; htmx 4 dispatches it generically from
-           the HX-* response headers. With JS off, the <noscript> submit
-           button posts the wrapping <form> the classic way and the server
-           303s back to Referer. #}
-        <form method="post" action="/preferences/locale" class="inline-flex items-center">
-          <label class="sr-only" for="locale-select">{{ t("language-switcher-label") }}</label>
-          <select id="locale-select" name="locale" class="lang-switcher"
-                  hx-post="/preferences/locale"
-                  hx-trigger="change"
-                  hx-include="this"
-                  hx-swap="none">
-            <option value="en" {% if _locale == 'en' %}selected{% endif %}>English</option>
-            <option value="es" {% if _locale == 'es' %}selected{% endif %}>Español</option>
-            <option value="fr" {% if _locale == 'fr' %}selected{% endif %}>Français</option>
-            <option value="de" {% if _locale == 'de' %}selected{% endif %}>Deutsch</option>
-          </select>
-          <noscript>
-            <button type="submit" class="btn-link ml-2">{{ t("language-switcher-label") }}</button>
-          </noscript>
-        </form>
+            <nav class="flex items-center gap-5" aria-label="{{ t('nav-account') }}">
+                {# Language switcher. With JS on, htmx fires the POST when the <select>
+                    changes (hx-trigger="change", hx-include="this") and the server's
+                    `HX-Refresh: true` response header tells htmx to reload the page.
+                    No client-side reload code; htmx 4 dispatches it generically from
+                    the HX-* response headers. With JS off, the <noscript> submit
+                        button posts the wrapping <form> the classic way and the server
+                            303s back to Referer. #}
+                            <form method="post" action="/preferences/locale" class="inline-flex items-center">
+                                <label class="sr-only" for="locale-select">{{ t("language-switcher-label") }}</label>
+                                <select id="locale-select" name="locale" class="lang-switcher"
+                                    hx-post="/preferences/locale" hx-trigger="change" hx-include="this" hx-swap="none">
+                                    <option value="en" {% if _locale=='en' %}selected{% endif %}>English</option>
+                                    <option value="es" {% if _locale=='es' %}selected{% endif %}>Español</option>
+                                    <option value="fr" {% if _locale=='fr' %}selected{% endif %}>Français</option>
+                                    <option value="de" {% if _locale=='de' %}selected{% endif %}>Deutsch</option>
+                                </select>
+                                <noscript>
+                                    <button type="submit" class="btn-link ml-2">{{ t("language-switcher-label")
+                                        }}</button>
+                                </noscript>
+                            </form>
 
-        {% if user %}
-          <span class="eyebrow hidden sm:inline" title="{{ user.email }}">
-            {{ user.email }}
-          </span>
-          <form action="/logout" method="post"
-                hx-post="/logout" hx-target="body" hx-push-url="true">
-            <button type="submit" class="btn-link" aria-label="{{ t('nav-logout') }}">{{ t("nav-logout") }}</button>
-          </form>
-        {% else %}
-          <a href="/login"  class="btn-link">{{ t("nav-login") }}</a>
-          <a href="/signup" class="btn-link">{{ t("nav-signup") }}</a>
-        {% endif %}
-      </nav>
-    </div>
-    <div class="measure mt-6"><hr class="rule"></div>
-  </header>
+                            {% if user %}
+                            <span class="eyebrow hidden sm:inline" title="{{ user.email }}">
+                                {{ user.email }}
+                            </span>
+                            <form action="/logout" method="post" hx-post="/logout" hx-target="body" hx-push-url="true">
+                                <button type="submit" class="btn-link" aria-label="{{ t('nav-logout') }}">{{
+                                    t("nav-logout") }}</button>
+                            </form>
+                            {% else %}
+                            <a href="/login" class="btn-link">{{ t("nav-login") }}</a>
+                            <a href="/signup" class="btn-link">{{ t("nav-signup") }}</a>
+                            {% endif %}
+            </nav>
+        </div>
+        <div class="measure mt-6">
+            <hr class="rule">
+        </div>
+    </header>
 
-  {# ---------- Content ---------- #}
-  <main id="main" class="pb-24">
-    {% block content %}{% endblock %}
-  </main>
+    {# ---------- Content ---------- #}
+    <main id="main" class="pb-24">
+        {% block content %}{% endblock %}
+    </main>
 
-  {# ---------- Footer ---------- #}
-  <footer class="pb-12">
-    <div class="measure">
-      <hr class="rule mb-6">
-      <div class="flex items-center justify-between gap-4 text-[0.6875rem]"
-           style="font-family: var(--font-mono); letter-spacing: 0.18em; text-transform: uppercase; color: var(--color-ink-mute);">
-        <span>{{ t("font-credit") }}</span>
-        <span aria-hidden="true">·</span>
-        <span>{{ t("printed-in-rust") }}</span>
-      </div>
-    </div>
-  </footer>
+    {# ---------- Footer ---------- #}
+    <footer class="pb-12">
+        <div class="measure">
+            <hr class="rule mb-6">
+            <div class="flex items-center justify-between gap-4 text-[0.6875rem]"
+                style="font-family: var(--font-mono); letter-spacing: 0.18em; text-transform: uppercase; color: var(--color-ink-mute);">
+                <span>{{ t("font-credit") }}</span>
+                <span aria-hidden="true">·</span>
+                <span>{{ t("printed-in-rust") }}</span>
+            </div>
+        </div>
+    </footer>
 
-  {# ---------- Scripts ---------- #}
-  <script src="{{ asset('vendor/htmx-4.0.0-beta3.min.js') }}" defer></script>
-  <script src="{{ asset('vendor/htmx-4.0.0-beta3-ext-alpine-compat.js') }}" defer></script>
-  <script src="{{ asset('vendor/alpine-3.15.12.min.js') }}" defer></script>
-  {% block scripts %}{% endblock %}
+    {# ---------- Scripts ---------- #}
+    <script src="{{ asset('vendor/htmx-4.0.0-beta3.min.js') }}" defer></script>
+    <script src="{{ asset('vendor/htmx-4.0.0-beta3-ext-alpine-compat.js') }}" defer></script>
+    <script src="{{ asset('vendor/alpine-3.15.12.min.js') }}" defer></script>
+    {% block scripts %}{% endblock %}
 </body>
+
 </html>

@@ -22,53 +22,53 @@ const TODOS_PER_USER = parseInt(__ENV.TODOS_PER_USER || '10', 10);
 const jar = new http.CookieJar();
 
 export const options = {
-  setupTimeout: '5m',
-  scenarios: {
-    read_heavy: {
-      executor: 'ramping-arrival-rate',
-      startRate: 50,
-      timeUnit: '1s',
-      preAllocatedVUs: 50,
-      maxVUs: 200,
-      stages: [
-        { duration: '1m', target: 100 },
-        { duration: '2m', target: 500 },
-        { duration: '2m', target: 1000 },
-        { duration: '2m', target: 1000 },
-        { duration: '1m', target: 0 },
-      ],
+    setupTimeout: '5m',
+    scenarios: {
+        read_heavy: {
+            executor: 'ramping-arrival-rate',
+            startRate: 50,
+            timeUnit: '1s',
+            preAllocatedVUs: 50,
+            maxVUs: 200,
+            stages: [
+                { duration: '1m', target: 100 },
+                { duration: '2m', target: 500 },
+                { duration: '2m', target: 1000 },
+                { duration: '2m', target: 1000 },
+                { duration: '1m', target: 0 },
+            ],
+        },
     },
-  },
-  thresholds: {
-    ...SHARED_THRESHOLDS,
-    'http_req_duration{endpoint:index}': ['p(95)<500'],
-  },
+    thresholds: {
+        ...SHARED_THRESHOLDS,
+        'http_req_duration{endpoint:index}': ['p(95)<500'],
+    },
 };
 
 export function setup() {
-  return { users: seedUsersWithTodos(USERS, TODOS_PER_USER) };
+    return { users: seedUsersWithTodos(USERS, TODOS_PER_USER) };
 }
 
 export default function (data) {
-  // On the first iteration each VU logs in as its assigned user and stores
-  // the session cookie in the persistent jar for subsequent iterations.
-  if (__ITER === 0) {
-    const user = data.users[(__VU - 1) % data.users.length];
-    login(user.email, user.password, jar);
-  }
+    // On the first iteration each VU logs in as its assigned user and stores
+    // the session cookie in the persistent jar for subsequent iterations.
+    if (__ITER === 0) {
+        const user = data.users[(__VU - 1) % data.users.length];
+        login(user.email, user.password, jar);
+    }
 
-  const roll = Math.random();
-  let r;
-  if (roll < 0.9) {
-    r = http.get(`${BASE_URL}/`, params(Endpoint.Index, { redirects: 0, jar }));
-    assertStatus(r, 200, 'GET /');
-  } else if (roll < 0.95) {
-    r = http.get(`${BASE_URL}/login`, params(Endpoint.Login, { jar }));
-    assertStatus(r, 200, 'GET /login');
-  } else {
-    r = http.get(`${BASE_URL}/healthz`, params(Endpoint.Healthz, { jar }));
-    assertStatus(r, 200, 'healthz');
-  }
+    const roll = Math.random();
+    let r;
+    if (roll < 0.9) {
+        r = http.get(`${BASE_URL}/`, params(Endpoint.Index, { redirects: 0, jar }));
+        assertStatus(r, 200, 'GET /');
+    } else if (roll < 0.95) {
+        r = http.get(`${BASE_URL}/login`, params(Endpoint.Login, { jar }));
+        assertStatus(r, 200, 'GET /login');
+    } else {
+        r = http.get(`${BASE_URL}/healthz`, params(Endpoint.Healthz, { jar }));
+        assertStatus(r, 200, 'healthz');
+    }
 }
 
 export const handleSummary = makeSummaryWriter('read_heavy');

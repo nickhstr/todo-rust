@@ -19,19 +19,19 @@ const SIGNUP_EXPECTED = http.expectedStatuses({ min: 200, max: 399 }, 409);
 // across k6 iterations — the default per-VU cookie jar is cleared between
 // iterations, so long-lived VU sessions need an explicit persistent jar.
 export function signup(email, password, jar = null) {
-  const extra = { redirects: 0, responseCallback: SIGNUP_EXPECTED };
-  if (jar) extra.jar = jar;
-  const res = http.post(
-    `${BASE_URL}/signup`,
-    { email, password },
-    params(Endpoint.Signup, extra),
-  );
-  if (res.status !== 303 && res.status !== 409) {
-    throw new Error(
-      `signup ${email} unexpected status ${res.status} body=${(res.body || '').slice(0, 200)}`,
+    const extra = { redirects: 0, responseCallback: SIGNUP_EXPECTED };
+    if (jar) extra.jar = jar;
+    const res = http.post(
+        `${BASE_URL}/signup`,
+        { email, password },
+        params(Endpoint.Signup, extra),
     );
-  }
-  return res;
+    if (res.status !== 303 && res.status !== 409) {
+        throw new Error(
+            `signup ${email} unexpected status ${res.status} body=${(res.body || '').slice(0, 200)}`,
+        );
+    }
+    return res;
 }
 
 // POST /login. Returns the response. Throws on anything other than 303.
@@ -39,16 +39,16 @@ export function signup(email, password, jar = null) {
 // across k6 iterations — the default per-VU cookie jar is cleared between
 // iterations, so long-lived VU sessions need an explicit persistent jar.
 export function login(email, password, jar = null) {
-  const extra = jar ? { redirects: 0, jar } : { redirects: 0 };
-  const res = http.post(
-    `${BASE_URL}/login`,
-    { email, password },
-    params(Endpoint.Login, extra),
-  );
-  if (res.status !== 303) {
-    throw new Error(
-      `login ${email} unexpected status ${res.status} body=${(res.body || '').slice(0, 200)}`,
+    const extra = jar ? { redirects: 0, jar } : { redirects: 0 };
+    const res = http.post(
+        `${BASE_URL}/login`,
+        { email, password },
+        params(Endpoint.Login, extra),
     );
-  }
-  return res;
+    if (res.status !== 303) {
+        throw new Error(
+            `login ${email} unexpected status ${res.status} body=${(res.body || '').slice(0, 200)}`,
+        );
+    }
+    return res;
 }

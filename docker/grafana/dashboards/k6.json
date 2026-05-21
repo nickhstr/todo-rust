@@ -1,174 +1,333 @@
 {
-  "annotations": { "list": [] },
-  "editable": true,
-  "fiscalYearStartMonth": 0,
-  "graphTooltip": 0,
-  "id": null,
-  "links": [],
-  "panels": [
-    {
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
-      "fieldConfig": { "defaults": {}, "overrides": [] },
-      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
-      "id": 1,
-      "options": {
-        "legend": { "displayMode": "list", "placement": "bottom", "showLegend": true },
-        "tooltip": { "mode": "multi", "sort": "desc" }
-      },
-      "targets": [
-        {
-          "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "sum(rate(k6_http_reqs_total{scenario=~\"$scenario\", git_sha=~\"$git_sha\"}[30s]))",
-          "legendFormat": "rps",
-          "refId": "A"
-        }
-      ],
-      "title": "RPS achieved",
-      "type": "timeseries"
+    "annotations": {
+        "list": []
     },
-    {
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
-      "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] },
-      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
-      "id": 2,
-      "options": {
-        "legend": { "displayMode": "list", "placement": "bottom", "showLegend": true },
-        "tooltip": { "mode": "multi", "sort": "desc" }
-      },
-      "targets": [
+    "editable": true,
+    "fiscalYearStartMonth": 0,
+    "graphTooltip": 0,
+    "id": null,
+    "links": [],
+    "panels": [
         {
-          "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "max(k6_http_req_duration_p50{scenario=~\"$scenario\", git_sha=~\"$git_sha\"})",
-          "legendFormat": "p50 (worst endpoint)",
-          "refId": "A"
+            "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+            },
+            "fieldConfig": {
+                "defaults": {},
+                "overrides": []
+            },
+            "gridPos": {
+                "h": 8,
+                "w": 12,
+                "x": 0,
+                "y": 0
+            },
+            "id": 1,
+            "options": {
+                "legend": {
+                    "displayMode": "list",
+                    "placement": "bottom",
+                    "showLegend": true
+                },
+                "tooltip": {
+                    "mode": "multi",
+                    "sort": "desc"
+                }
+            },
+            "targets": [
+                {
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "prometheus"
+                    },
+                    "expr": "sum(rate(k6_http_reqs_total{scenario=~\"$scenario\", git_sha=~\"$git_sha\"}[30s]))",
+                    "legendFormat": "rps",
+                    "refId": "A"
+                }
+            ],
+            "title": "RPS achieved",
+            "type": "timeseries"
         },
         {
-          "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "max(k6_http_req_duration_p95{scenario=~\"$scenario\", git_sha=~\"$git_sha\"})",
-          "legendFormat": "p95 (worst endpoint)",
-          "refId": "B"
+            "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+            },
+            "fieldConfig": {
+                "defaults": {
+                    "unit": "s"
+                },
+                "overrides": []
+            },
+            "gridPos": {
+                "h": 8,
+                "w": 12,
+                "x": 12,
+                "y": 0
+            },
+            "id": 2,
+            "options": {
+                "legend": {
+                    "displayMode": "list",
+                    "placement": "bottom",
+                    "showLegend": true
+                },
+                "tooltip": {
+                    "mode": "multi",
+                    "sort": "desc"
+                }
+            },
+            "targets": [
+                {
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "prometheus"
+                    },
+                    "expr": "max(k6_http_req_duration_p50{scenario=~\"$scenario\", git_sha=~\"$git_sha\"})",
+                    "legendFormat": "p50 (worst endpoint)",
+                    "refId": "A"
+                },
+                {
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "prometheus"
+                    },
+                    "expr": "max(k6_http_req_duration_p95{scenario=~\"$scenario\", git_sha=~\"$git_sha\"})",
+                    "legendFormat": "p95 (worst endpoint)",
+                    "refId": "B"
+                },
+                {
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "prometheus"
+                    },
+                    "expr": "max(k6_http_req_duration_p99{scenario=~\"$scenario\", git_sha=~\"$git_sha\"})",
+                    "legendFormat": "p99 (worst endpoint)",
+                    "refId": "C"
+                }
+            ],
+            "title": "HTTP latency (p50/p95/p99)",
+            "type": "timeseries"
         },
         {
-          "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "max(k6_http_req_duration_p99{scenario=~\"$scenario\", git_sha=~\"$git_sha\"})",
-          "legendFormat": "p99 (worst endpoint)",
-          "refId": "C"
-        }
-      ],
-      "title": "HTTP latency (p50/p95/p99)",
-      "type": "timeseries"
-    },
-    {
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
-      "fieldConfig": { "defaults": { "unit": "percentunit" }, "overrides": [] },
-      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
-      "id": 3,
-      "options": {
-        "legend": { "displayMode": "list", "placement": "bottom", "showLegend": true },
-        "tooltip": { "mode": "multi", "sort": "desc" }
-      },
-      "targets": [
+            "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+            },
+            "fieldConfig": {
+                "defaults": {
+                    "unit": "percentunit"
+                },
+                "overrides": []
+            },
+            "gridPos": {
+                "h": 8,
+                "w": 12,
+                "x": 0,
+                "y": 8
+            },
+            "id": 3,
+            "options": {
+                "legend": {
+                    "displayMode": "list",
+                    "placement": "bottom",
+                    "showLegend": true
+                },
+                "tooltip": {
+                    "mode": "multi",
+                    "sort": "desc"
+                }
+            },
+            "targets": [
+                {
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "prometheus"
+                    },
+                    "expr": "max(k6_http_req_failed_rate{scenario=~\"$scenario\", git_sha=~\"$git_sha\"})",
+                    "legendFormat": "failed rate (worst endpoint)",
+                    "refId": "A"
+                }
+            ],
+            "title": "Error rate",
+            "type": "timeseries"
+        },
         {
-          "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "max(k6_http_req_failed_rate{scenario=~\"$scenario\", git_sha=~\"$git_sha\"})",
-          "legendFormat": "failed rate (worst endpoint)",
-          "refId": "A"
-        }
-      ],
-      "title": "Error rate",
-      "type": "timeseries"
-    },
-    {
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
-      "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] },
-      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
-      "id": 4,
-      "options": {
-        "legend": { "displayMode": "list", "placement": "bottom", "showLegend": true },
-        "tooltip": { "mode": "multi", "sort": "desc" }
-      },
-      "targets": [
+            "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+            },
+            "fieldConfig": {
+                "defaults": {
+                    "unit": "s"
+                },
+                "overrides": []
+            },
+            "gridPos": {
+                "h": 8,
+                "w": 12,
+                "x": 12,
+                "y": 8
+            },
+            "id": 4,
+            "options": {
+                "legend": {
+                    "displayMode": "list",
+                    "placement": "bottom",
+                    "showLegend": true
+                },
+                "tooltip": {
+                    "mode": "multi",
+                    "sort": "desc"
+                }
+            },
+            "targets": [
+                {
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "prometheus"
+                    },
+                    "expr": "max by (endpoint) (k6_http_req_duration_p95{scenario=~\"$scenario\", git_sha=~\"$git_sha\"})",
+                    "legendFormat": "{{endpoint}}",
+                    "refId": "A"
+                }
+            ],
+            "title": "Per-endpoint p95 latency",
+            "type": "timeseries"
+        },
         {
-          "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "max by (endpoint) (k6_http_req_duration_p95{scenario=~\"$scenario\", git_sha=~\"$git_sha\"})",
-          "legendFormat": "{{endpoint}}",
-          "refId": "A"
-        }
-      ],
-      "title": "Per-endpoint p95 latency",
-      "type": "timeseries"
-    },
-    {
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
-      "fieldConfig": { "defaults": {}, "overrides": [] },
-      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 16 },
-      "id": 5,
-      "options": {
-        "legend": { "displayMode": "list", "placement": "bottom", "showLegend": true },
-        "tooltip": { "mode": "multi", "sort": "desc" }
-      },
-      "targets": [
+            "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+            },
+            "fieldConfig": {
+                "defaults": {},
+                "overrides": []
+            },
+            "gridPos": {
+                "h": 8,
+                "w": 12,
+                "x": 0,
+                "y": 16
+            },
+            "id": 5,
+            "options": {
+                "legend": {
+                    "displayMode": "list",
+                    "placement": "bottom",
+                    "showLegend": true
+                },
+                "tooltip": {
+                    "mode": "multi",
+                    "sort": "desc"
+                }
+            },
+            "targets": [
+                {
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "prometheus"
+                    },
+                    "expr": "max(k6_vus{scenario=~\"$scenario\", git_sha=~\"$git_sha\"})",
+                    "legendFormat": "vus",
+                    "refId": "A"
+                }
+            ],
+            "title": "VUs",
+            "type": "timeseries"
+        },
         {
-          "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "max(k6_vus{scenario=~\"$scenario\", git_sha=~\"$git_sha\"})",
-          "legendFormat": "vus",
-          "refId": "A"
+            "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+            },
+            "fieldConfig": {
+                "defaults": {
+                    "unit": "percentunit"
+                },
+                "overrides": []
+            },
+            "gridPos": {
+                "h": 8,
+                "w": 12,
+                "x": 12,
+                "y": 16
+            },
+            "id": 6,
+            "options": {
+                "legend": {
+                    "displayMode": "list",
+                    "placement": "bottom",
+                    "showLegend": true
+                },
+                "tooltip": {
+                    "mode": "multi",
+                    "sort": "desc"
+                }
+            },
+            "targets": [
+                {
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "prometheus"
+                    },
+                    "expr": "min(k6_checks_rate{scenario=~\"$scenario\", git_sha=~\"$git_sha\"})",
+                    "legendFormat": "checks pass rate (worst check)",
+                    "refId": "A"
+                }
+            ],
+            "title": "Checks pass rate",
+            "type": "timeseries"
         }
-      ],
-      "title": "VUs",
-      "type": "timeseries"
+    ],
+    "refresh": "5s",
+    "schemaVersion": 38,
+    "tags": [
+        "k6"
+    ],
+    "templating": {
+        "list": [
+            {
+                "name": "scenario",
+                "type": "query",
+                "datasource": {
+                    "type": "prometheus",
+                    "uid": "prometheus"
+                },
+                "query": "label_values(k6_http_reqs_total, scenario)",
+                "refresh": 2,
+                "includeAll": true,
+                "current": {
+                    "text": "All",
+                    "value": "$__all"
+                }
+            },
+            {
+                "name": "git_sha",
+                "type": "query",
+                "datasource": {
+                    "type": "prometheus",
+                    "uid": "prometheus"
+                },
+                "query": "label_values(k6_http_reqs_total{scenario=~\"$scenario\"}, git_sha)",
+                "refresh": 2,
+                "includeAll": true,
+                "current": {
+                    "text": "All",
+                    "value": "$__all"
+                }
+            }
+        ]
     },
-    {
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
-      "fieldConfig": { "defaults": { "unit": "percentunit" }, "overrides": [] },
-      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 16 },
-      "id": 6,
-      "options": {
-        "legend": { "displayMode": "list", "placement": "bottom", "showLegend": true },
-        "tooltip": { "mode": "multi", "sort": "desc" }
-      },
-      "targets": [
-        {
-          "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "min(k6_checks_rate{scenario=~\"$scenario\", git_sha=~\"$git_sha\"})",
-          "legendFormat": "checks pass rate (worst check)",
-          "refId": "A"
-        }
-      ],
-      "title": "Checks pass rate",
-      "type": "timeseries"
-    }
-  ],
-  "refresh": "5s",
-  "schemaVersion": 38,
-  "tags": ["k6"],
-  "templating": {
-    "list": [
-      {
-        "name": "scenario",
-        "type": "query",
-        "datasource": { "type": "prometheus", "uid": "prometheus" },
-        "query": "label_values(k6_http_reqs_total, scenario)",
-        "refresh": 2,
-        "includeAll": true,
-        "current": { "text": "All", "value": "$__all" }
-      },
-      {
-        "name": "git_sha",
-        "type": "query",
-        "datasource": { "type": "prometheus", "uid": "prometheus" },
-        "query": "label_values(k6_http_reqs_total{scenario=~\"$scenario\"}, git_sha)",
-        "refresh": 2,
-        "includeAll": true,
-        "current": { "text": "All", "value": "$__all" }
-      }
-    ]
-  },
-  "time": { "from": "now-15m", "to": "now" },
-  "timepicker": {},
-  "timezone": "",
-  "title": "k6 load tests",
-  "uid": "k6-load-tests",
-  "version": 1,
-  "weekStart": ""
+    "time": {
+        "from": "now-15m",
+        "to": "now"
+    },
+    "timepicker": {},
+    "timezone": "",
+    "title": "k6 load tests",
+    "uid": "k6-load-tests",
+    "version": 1,
+    "weekStart": ""
 }

@@ -1,38 +1,58 @@
 <!doctype html>
 <html lang="{{ _locale or 'en' }}">
+
 <head>
-  <meta charset="utf-8">
-  <title>preview · {{ template_path }} · {{ story }}</title>
-  <link rel="stylesheet" href="{{ asset('css/app.css') }}">
-  <script src="{{ asset('vendor/alpine-3.15.12.min.js') }}" defer></script>
-  {# Deliberately NO htmx. hx-* attributes are dead markup here. #}
-  <style>
-    .__preview_bar {
-      position: fixed; top: 0; left: 0; right: 0;
-      background: #222; color: #eee;
-      padding: 6px 12px; font: 12px/1.4 ui-monospace, monospace;
-      z-index: 9999;
-      display: flex; gap: 12px; flex-wrap: wrap;
-    }
-    .__preview_bar a { color: #6cf; text-decoration: none; }
-    .__preview_bar a:hover { text-decoration: underline; }
-    body { padding-top: 32px; }
-  </style>
+    <meta charset="utf-8">
+    <title>preview · {{ template_path }} · {{ story }}</title>
+    <link rel="stylesheet" href="{{ asset('css/app.css') }}">
+    <script src="{{ asset('vendor/alpine-3.15.12.min.js') }}" defer></script>
+    {# Deliberately NO htmx. hx-* attributes are dead markup here. #}
+    <style>
+        .__preview_bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: #222;
+            color: #eee;
+            padding: 6px 12px;
+            font: 12px/1.4 ui-monospace, monospace;
+            z-index: 9999;
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .__preview_bar a {
+            color: #6cf;
+            text-decoration: none;
+        }
+
+        .__preview_bar a:hover {
+            text-decoration: underline;
+        }
+
+        body {
+            padding-top: 32px;
+        }
+    </style>
 </head>
+
 <body class="antialiased">
-  <div class="__preview_bar">
-    <span>PREVIEW</span>
-    <span>{{ template_path }} · {{ story }}</span>
-    <span>locale={{ _locale }} tz={{ _tz }}</span>
-    <span>
-      {% for l in ["en", "es", "fr", "de"] -%}
-        <a href="?locale={{ l }}&tz={{ _tz }}">[{{ l }}]</a>
-      {%- endfor %}
-    </span>
-    <span><a href="/__preview">↩ index</a></span>
-  </div>
-  <main>
-    {{ rendered_partial | safe }}
-  </main>
+    <div class="__preview_bar">
+        <span>PREVIEW</span>
+        <span>{{ template_path }} · {{ story }}</span>
+        <span>locale={{ _locale }} tz={{ _tz }}</span>
+        <span>
+            {% for l in ["en", "es", "fr", "de"] -%}
+            <a href="?locale={{ l }}&tz={{ _tz }}">[{{ l }}]</a>
+            {%- endfor %}
+        </span>
+        <span><a href="/__preview">↩ index</a></span>
+    </div>
+    <main>
+        {{ rendered_partial | safe }}
+    </main>
 </body>
+
 </html>
