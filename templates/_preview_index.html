@@ -32,19 +32,21 @@
   <ul>
     {% for entry in entries %}
       <li>
-        <strong>{{ entry.template_path }}</strong>
+        {# Paths are filesystem-derived (trusted) and contain '/', which minijinja's
+           HTML autoescape would turn into &#x2f; — fine for text, broken for hrefs. #}
+        <strong>{{ entry.template_path | safe }}</strong>
         {% if entry.stories %}
           <ul>
             {% for story in entry.stories %}
               <li>
-                <a href="/__preview/render/{{ entry.template_path }}/{{ story }}?locale={{ _locale }}&tz={{ _tz }}">
+                <a href="/__preview/render/{{ entry.template_path | safe }}/{{ story }}?locale={{ _locale }}&tz={{ _tz }}">
                   {{ story }}
                 </a>
               </li>
             {% endfor %}
           </ul>
         {% else %}
-          <ul><li class="empty">[no fixtures — add at fixtures/templates/{{ entry.template_path | replace(".html", "") }}/default.toml]</li></ul>
+          <ul><li class="empty">[no fixtures — add at fixtures/templates/{{ entry.template_path | replace(".html", "") | safe }}/default.toml]</li></ul>
         {% endif %}
       </li>
     {% endfor %}
