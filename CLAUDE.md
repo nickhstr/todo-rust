@@ -36,12 +36,15 @@ Boundaries are enforced by Cargo dependency edges — if you find yourself wanti
 | Task | Command |
 |---|---|
 | Workspace build | `cargo build --workspace` |
+| Format (run before committing) | `just fmt` (= `cargo fmt --all`) |
 | Lint (gate) | `cargo clippy --workspace --all-targets -- -D warnings` |
 | Unit tests (no Docker) | `cargo test --workspace --lib --bins` |
 | Integration tests (need Docker) | `cargo test --workspace` |
 | Release build | `cargo build --release --bin todo-app` |
 | Full stack | `just up-prod` (production-like) or `just up` (dev w/ hot reload) |
 | Generate session key | `just gen-session-key` (or `just init-env` to write it into `.env`) |
+
+Always run `just fmt` before committing — there's no pre-commit hook to catch unformatted Rust, and `just fmt-check` runs in CI.
 
 ## Frontend dependencies (vendored)
 
