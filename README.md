@@ -14,10 +14,13 @@ The point isn't the todos — it's the scaffold: auth, observability, caching, h
 | Sessions | `axum-login` + `tower-sessions` with signed cookies, Postgres-backed store |
 | Cache | Valkey 7 via `fred` 9.x |
 | Frontend | htmx 4.0.0-beta3 + Alpine.js 3 + Tailwind v4 — all vendored locally; no CDN, no Google Fonts |
+| Static assets | Content-hashed at startup (sha256[..8]); `asset()` MiniJinja helper resolves logical → hashed paths |
+| i18n | Fluent message catalogs (en/es/fr/de) + ICU CLDR datetime formatting; per-user locale + tz cookies |
 | Tracing | `tracing` → `tracing-opentelemetry` → OTLP/gRPC → otel-collector → Tempo |
 | Logs | `tracing` → `opentelemetry-appender-tracing` → OTLP/gRPC → otel-collector → OTLP-HTTP → Loki |
 | Metrics | `metrics` + `metrics-exporter-prometheus`, Prometheus scrapes `/metrics` |
 | Dashboards | Grafana with provisioned Prometheus / Tempo / Loki datasources |
+| Load testing | k6 scenarios (smoke / read-heavy / journey) run from a sidecar compose override, remote-writing to Prometheus |
 | Container | Multi-stage `Dockerfile` → distroless `cc-debian12` runtime |
 
 ## Quick start
@@ -76,23 +79,32 @@ crates/
   app/            HTTP layer: axum router, handlers, templates, auth, middleware, cache helper
   domain/         Pure types: User, Todo, Credentials, error enums (no I/O)
   storage/        sqlx pool, UserRepository (with timing-equalized verify), TodoRepository, MIGRATOR
+  i18n/           Locale negotiation, Fluent message catalogs, ICU datetime formatting, MiniJinja helpers
+  assets/         Content-hashed static asset manifest + `asset()` MiniJinja helper
   observability/  tracing-subscriber wiring; OTel tracer + logger providers; Prometheus recorder;
                   custom layer that activates OTel context per tracing span (otel_context_layer.rs)
-templates/        MiniJinja templates (base, index, login, signup + partials)
+templates/        MiniJinja templates (base, index, login, signup, _preview_* + partials)
 static/
   css/            Tailwind source + compiled (gitignored)
   vendor/         htmx + alpine + alpine-compat extension, each with .gz / .br siblings
+locales/          Fluent (.ftl) message catalogs per language (en/es/fr/de)
+fixtures/         TOML render contexts for the dev template preview tool
 migrations/       SQL migrations applied at startup via sqlx::migrate! at the workspace root
+k6/               Load test scenarios + lib (smoke / read_heavy / journey); see k6/README.md
+bin/              Pinned standalone `tailwindcss` binary (gitignored; fetched by scripts/install-tailwind.sh)
+scripts/          install-tailwind.sh (SHA256-pinned Tailwind v4 binary fetch)
 docker/
   Dockerfile          multi-stage production build → distroless runtime
   Dockerfile.dev      full Rust toolchain for the dev override
   compose.yaml        prod-like stack (8 services)
   compose.dev.yaml    override: bind-mounted source, cargo-watch, tailwind polling loop
+  compose.k6.yaml     override: k6 sidecar + Prometheus remote-write receiver
   otel/               OpenTelemetry Collector config (OTLP in → Tempo + Loki out)
   prometheus/         scrape config
   tempo/              Tempo 3.0 config (OTLP receivers, local storage)
   loki/               Loki 3.x config with allow_structured_metadata: true
   grafana/            datasource + dashboard provisioning
+deploy/             Hetzner k3s infra (OpenTofu) + ArgoCD manifests + local k3d parity
 ```
 
 ## Tests
@@ -104,6 +116,21 @@ just fmt      # cargo fmt --all
 ```
 
 Integration tests (`crates/storage/tests/repos.rs`, `crates/app/tests/{auth_flow,todos_flow}.rs`) use [`testcontainers`](https://crates.io/crates/testcontainers) to spin up ephemeral Postgres per test module, so Docker must be running for them.
+
+## Load tests (k6)
+
+Scenarios live in `k6/scenarios/` and run from a sidecar compose override (`docker/compose.k6.yaml`) — no host install of k6 needed. Metrics remote-write into the same Prometheus the app scrapes, so the **k6-load-tests** Grafana dashboard renders live charts alongside the app's metrics.
+
+```bash
+just k6-smoke      # 30s sanity check (tight thresholds)
+just k6-load       # ramping arrival rate up to ~1000 RPS on GET /
+just k6-journey    # 30 VUs running the full signup → CRUD → list loop
+just k6-all        # all three in sequence; halts on first threshold failure
+just k6-clean-db   # remove load-test users + their todos
+just k6-down       # tear down the k6 stack (preserves volumes)
+```
+
+Per-run JSON summaries land in `k6/results/` (gitignored). See `k6/README.md` for per-scenario thresholds and tuning knobs.
 
 ## Smoke test
 
@@ -147,6 +174,9 @@ Notable knobs:
 | `APP__OBSERVABILITY__OTEL_ENABLED` | Master switch for OTLP traces + logs. `true` in compose; `false` for local-only runs. |
 | `APP__OBSERVABILITY__LOG_FORMAT` | `pretty` (dev) or `json` (prod). |
 | `APP__TEMPLATE_AUTORELOAD` | `true` in dev — switches `Templates::dev` (env rebuilt every render) vs `Templates::production` (single static env). |
+| `APP__DEV__AUTO_LOGIN_EMAIL` | Dev-only. Non-empty + a `debug_assertions` build → exposes `POST /dev/login` for passwordless login as that email (seeded on startup). Never set in prod. |
+| `APP__DEV__PREVIEW_ENABLED` | Dev-only. `true` enables the `/__preview` template preview tool. |
+| `APP__DEV__PREVIEW_FIXTURES_DIR` | Path to the directory of TOML fixtures for the preview tool. |
 | `RUST_LOG` | Standard `tracing_subscriber::EnvFilter` syntax. |
 
 ## Security posture
@@ -154,7 +184,7 @@ Notable knobs:
 - Argon2id password hashing on a `spawn_blocking` worker; `UserRepository::verify` runs a dummy verify on the unknown-email path so timing doesn't leak account existence.
 - Signed session cookies (≥64-byte key, `SameSite=Lax`, `HttpOnly`).
 - Per-IP token-bucket rate limit on `/login` and `/signup` (5 / minute, burst 5). Counts emitted as `auth_rate_limited_total`.
-- CSP `default-src 'self'`. `'unsafe-eval'` on `script-src` is required by Alpine and htmx 4's `hx-on::*` attributes; everything else (scripts, fonts, CSS) is same-origin.
+- CSP `default-src 'self'` with a fresh 128-bit per-request nonce on `script-src` (set by `csp_nonce_middleware`; emitted on inline `<script>` tags via the `csp_nonce` template variable). `'unsafe-eval'` stays on `script-src` because Alpine and htmx 4's `hx-on::*` attributes runtime-compile expressions; `'unsafe-inline'` is deliberately absent.
 - `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`, `Permissions-Policy: geolocation=(), microphone=(), camera=()`. HSTS only when `cookie_secure=true`.
 - `/login` redirects via `?next=` are filtered through `safe_next` — only same-origin, single-leading-slash paths are honored.
 - `tower_http::sensitive_headers` hides `Authorization` and `Cookie` from trace output.
@@ -165,6 +195,7 @@ Notable knobs:
 - Single Postgres, single Valkey. Run Postgres behind PgBouncer in real deployments.
 - One user per email; no multi-tenancy beyond per-user isolation.
 - The `tailwind` dev-watch loop runs `find` mtime polling at 1s — fine for one engineer's laptop; not appropriate as a CI build step (use `just css-build` instead).
+- `icu` ships ~4 MB of CLDR data baked into the binary (all locales). Trimming to the four shipped languages would need an `icu_datagen` build.rs step — recorded as future work.
 
 ## Production deployment (Hetzner k3s)
 
@@ -218,7 +249,11 @@ this path vs `just up` (docker compose) vs a real preview env.
 
 ### Template preview
 
-Dev-only: with the dev compose stack up, browse to `http://localhost:3000/__preview` to render any template in `templates/` against hand-edited TOML fixtures in `fixtures/templates/`. Off in production builds. Spec: [docs/superpowers/specs/2026-05-20-template-preview-design.md](docs/superpowers/specs/2026-05-20-template-preview-design.md).
+Dev-only: with the dev compose stack up (which sets `APP__DEV__PREVIEW_ENABLED=true`), browse to `http://localhost:3000/__preview` to render any template in `templates/` against hand-edited TOML fixtures in `fixtures/templates/`. Off in production builds. Spec: [docs/superpowers/specs/2026-05-20-template-preview-design.md](docs/superpowers/specs/2026-05-20-template-preview-design.md).
+
+### Dev passwordless login
+
+Dev-only: a debug build with `APP__DEV__AUTO_LOGIN_EMAIL` set (the dev compose seeds `dev@local`) exposes `POST /dev/login`, which signs you in as that user without a password. The user is seeded with a throwaway random password on app startup. The route module is `#[cfg(debug_assertions)]`, so `--release` builds don't link it at all.
 
 ## Further reading
 
