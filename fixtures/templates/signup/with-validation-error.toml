@@ -1,0 +1,5 @@
+[meta]
+description = "Signup form with a validation error displayed"
+
+[ctx]
+error = "Email is already taken."

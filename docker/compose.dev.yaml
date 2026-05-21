@@ -16,6 +16,10 @@ services:
       # Dev-only passwordless login. The route + bootstrap are also gated by
       # cfg(debug_assertions), so a release build ignores this even if set.
       APP__DEV__AUTO_LOGIN_EMAIL: dev@local
+      APP__DEV__PREVIEW_ENABLED: "true"
+      # Explicit container-absolute path so the relative default doesn't
+      # silently miss when the WORKDIR or bind-mount layout shifts.
+      APP__DEV__PREVIEW_FIXTURES_DIR: /app/fixtures/templates
       # Dev builds compile inside the running container (cargo-watch), and the
       # bind mounts don't include `.git/`, so `build.rs` can't shell out. Pass
       # the SHA in as an env var; build.rs reads $GIT_SHA first. `just up*`
@@ -27,6 +31,7 @@ services:
       - ../static:/app/static
       - ../migrations:/app/migrations
       - ../locales:/app/locales
+      - ../fixtures:/app/fixtures:ro
       - ../Cargo.toml:/app/Cargo.toml
       - ../Cargo.lock:/app/Cargo.lock:ro
       - cargo-cache:/usr/local/cargo/registry

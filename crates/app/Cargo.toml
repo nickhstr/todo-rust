@@ -47,6 +47,7 @@ sqlx                        = { workspace = true }
 thiserror                   = { workspace = true }
 time                        = { workspace = true }
 time-tz                     = { workspace = true }
+toml                        = { workspace = true }
 tokio                       = { workspace = true }
 tower                       = { workspace = true }
 tower-http                  = { workspace = true }

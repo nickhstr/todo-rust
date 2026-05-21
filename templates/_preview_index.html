@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="{{ _locale or 'en' }}">
+<head>
+  <meta charset="utf-8">
+  <title>preview · index</title>
+  <link rel="stylesheet" href="{{ asset('css/app.css') }}">
+  <style>
+    body { font: 14px/1.5 ui-sans-serif, system-ui; padding: 24px; max-width: 720px; margin: 0 auto; }
+    h1 { font-size: 18px; margin-bottom: 16px; }
+    h2 { font-size: 14px; margin-top: 24px; color: #555; font-weight: 500; }
+    ul { list-style: none; padding-left: 16px; }
+    li { padding: 2px 0; }
+    .empty { color: #999; font-style: italic; }
+    .switcher { background: #f5f5f0; padding: 8px 12px; border-radius: 4px; margin-bottom: 16px; font-family: ui-monospace, monospace; font-size: 12px; }
+    .switcher a { margin-right: 8px; }
+  </style>
+</head>
+<body>
+  <h1>Template preview</h1>
+
+  <div class="switcher">
+    locale:
+    {% for l in ["en", "es", "fr", "de"] %}
+      <a href="?locale={{ l }}&tz={{ _tz }}">[{{ l }}]</a>
+    {% endfor %}
+    &nbsp; tz:
+    {% for z in ["UTC", "America/New_York", "Europe/Paris", "Asia/Tokyo"] %}
+      <a href="?locale={{ _locale }}&tz={{ z }}">[{{ z }}]</a>
+    {% endfor %}
+  </div>
+
+  <ul>
+    {% for entry in entries %}
+      <li>
+        {# Paths are filesystem-derived (trusted) and contain '/', which minijinja's
+           HTML autoescape would turn into &#x2f; — fine for text, broken for hrefs. #}
+        <strong>{{ entry.template_path | safe }}</strong>
+        {% if entry.stories %}
+          <ul>
+            {% for story in entry.stories %}
+              <li>
+                <a href="/__preview/render/{{ entry.template_path | safe }}/{{ story }}?locale={{ _locale }}&tz={{ _tz }}">
+                  {{ story }}
+                </a>
+              </li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <ul><li class="empty">[no fixtures — add at fixtures/templates/{{ entry.template_path | replace(".html", "") | safe }}/default.toml]</li></ul>
+        {% endif %}
+      </li>
+    {% endfor %}
+  </ul>
+</body>
+</html>

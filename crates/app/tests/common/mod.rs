@@ -55,6 +55,12 @@ pub async fn spawn_with(configure: impl FnOnce(&mut Config)) -> TestServer {
         .parent()
         .unwrap()
         .join("static");
+    cfg.dev.preview_fixtures_dir = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .unwrap()
+        .parent()
+        .unwrap()
+        .join("fixtures/templates");
     cfg.auth.session_key = hex::encode([7u8; 64]); // 64 bytes, deterministic
     cfg.auth.cookie_secure = false;
     configure(&mut cfg);

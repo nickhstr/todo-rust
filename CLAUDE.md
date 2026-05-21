@@ -36,12 +36,15 @@ Boundaries are enforced by Cargo dependency edges — if you find yourself wanti
 | Task | Command |
 |---|---|
 | Workspace build | `cargo build --workspace` |
+| Format (run before committing) | `just fmt` (= `cargo fmt --all`) |
 | Lint (gate) | `cargo clippy --workspace --all-targets -- -D warnings` |
 | Unit tests (no Docker) | `cargo test --workspace --lib --bins` |
 | Integration tests (need Docker) | `cargo test --workspace` |
 | Release build | `cargo build --release --bin todo-app` |
 | Full stack | `just up-prod` (production-like) or `just up` (dev w/ hot reload) |
 | Generate session key | `just gen-session-key` (or `just init-env` to write it into `.env`) |
+
+Always run `just fmt` before committing — there's no pre-commit hook to catch unformatted Rust, and `just fmt-check` runs in CI.
 
 ## Frontend dependencies (vendored)
 
@@ -113,6 +116,7 @@ The naming is NOT keyed on literal header names in the JS — searches for `"HX-
 - **A new domain type** → `crates/domain/src/<file>.rs` first, then a repository method in `crates/storage`, then a handler in `crates/app`.
 - **A new metric** → emit in the relevant handler with `metrics::counter!()` or `metrics::histogram!()`. If it should land in the Grafana dashboard, also add a panel to `docker/grafana/dashboards/app.json`.
 - **A new template** → put in `templates/` (partials in `templates/partials/`); `Templates::render("name.html", context)` from a handler.
+- **A new fixture for the template preview tool** → drop a TOML file at `fixtures/templates/<template-path-without-ext>/<story>.toml` with a `[ctx]` table holding the render context. Visit `/__preview` in a dev build (with `APP__DEV__PREVIEW_ENABLED=true`) to see it. Spec: `docs/superpowers/specs/2026-05-20-template-preview-design.md`.
 
 ## Known gaps / "this would be nice next"
 

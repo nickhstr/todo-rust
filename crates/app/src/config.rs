@@ -26,13 +26,35 @@ pub struct Config {
 /// Local-development conveniences. The features here are compiled out of
 /// `--release` builds (see `cfg(debug_assertions)` gates in `router.rs` and
 /// `main.rs`), so a config leak alone can't expose them in production.
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DevConfig {
     /// When non-empty (and the binary is a debug build), `POST /dev/login`
     /// drops the bearer into a session as this user. The account is created
     /// on startup if missing.
     #[serde(default)]
     pub auto_login_email: String,
+
+    /// When true (and the binary is a debug build), mounts `/__preview/*`.
+    #[serde(default)]
+    pub preview_enabled: bool,
+
+    /// Directory containing `<template>/<story>.toml` fixtures.
+    #[serde(default = "default_preview_fixtures_dir")]
+    pub preview_fixtures_dir: PathBuf,
+}
+
+impl Default for DevConfig {
+    fn default() -> Self {
+        Self {
+            auto_login_email: String::new(),
+            preview_enabled: false,
+            preview_fixtures_dir: default_preview_fixtures_dir(),
+        }
+    }
+}
+
+fn default_preview_fixtures_dir() -> PathBuf {
+    PathBuf::from("fixtures/templates")
 }
 
 impl DevConfig {
@@ -168,6 +190,26 @@ mod tests {
         let defaulted: RateLimitConfig = serde_json::from_str("{}").unwrap();
         assert!(defaulted.enabled);
     }
+
+    #[test]
+    fn dev_preview_defaults_are_off_and_fixtures_dir() {
+        let cfg = Config::default();
+        assert!(!cfg.dev.preview_enabled, "preview must default to off");
+        assert_eq!(
+            cfg.dev.preview_fixtures_dir,
+            std::path::PathBuf::from("fixtures/templates"),
+            "preview_fixtures_dir default"
+        );
+    }
+
+    #[test]
+    fn dev_preview_serde_roundtrip() {
+        let json =
+            r#"{"auto_login_email": "", "preview_enabled": true, "preview_fixtures_dir": "x/y"}"#;
+        let cfg: DevConfig = serde_json::from_str(json).unwrap();
+        assert!(cfg.preview_enabled);
+        assert_eq!(cfg.preview_fixtures_dir, std::path::PathBuf::from("x/y"));
+    }
 }
 
 fn default_template_autoreload() -> bool {
@@ -290,7 +332,16 @@ impl Config {
             )?
             .set_default("template_autoreload", defaults.template_autoreload)?
             .set_default("rate_limit.enabled", defaults.rate_limit.enabled)?
-            .set_default("dev.auto_login_email", defaults.dev.auto_login_email)?;
+            .set_default("dev.auto_login_email", defaults.dev.auto_login_email)?
+            .set_default("dev.preview_enabled", defaults.dev.preview_enabled)?
+            .set_default(
+                "dev.preview_fixtures_dir",
+                defaults
+                    .dev
+                    .preview_fixtures_dir
+                    .to_string_lossy()
+                    .to_string(),
+            )?;
 
         // 12-factor shortcuts
         if let Ok(url) = std::env::var("DATABASE_URL") {
