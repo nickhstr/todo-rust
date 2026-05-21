@@ -204,7 +204,8 @@ mod tests {
 
     #[test]
     fn dev_preview_serde_roundtrip() {
-        let json = r#"{"auto_login_email": "", "preview_enabled": true, "preview_fixtures_dir": "x/y"}"#;
+        let json =
+            r#"{"auto_login_email": "", "preview_enabled": true, "preview_fixtures_dir": "x/y"}"#;
         let cfg: DevConfig = serde_json::from_str(json).unwrap();
         assert!(cfg.preview_enabled);
         assert_eq!(cfg.preview_fixtures_dir, std::path::PathBuf::from("x/y"));
@@ -335,7 +336,11 @@ impl Config {
             .set_default("dev.preview_enabled", defaults.dev.preview_enabled)?
             .set_default(
                 "dev.preview_fixtures_dir",
-                defaults.dev.preview_fixtures_dir.to_string_lossy().to_string(),
+                defaults
+                    .dev
+                    .preview_fixtures_dir
+                    .to_string_lossy()
+                    .to_string(),
             )?;
 
         // 12-factor shortcuts

@@ -126,9 +126,15 @@ pub async fn render(
     // Build the render context: ambient defaults, then merge fixture ctx on top.
     // Fixture wins on key conflict (explicit override always works).
     let mut merged = serde_json::Map::new();
-    merged.insert("_locale".into(), serde_json::Value::String(locale.to_string()));
+    merged.insert(
+        "_locale".into(),
+        serde_json::Value::String(locale.to_string()),
+    );
     merged.insert("_tz".into(), serde_json::Value::String(tz.to_string()));
-    merged.insert("csp_nonce".into(), serde_json::Value::String(nonce.0.clone()));
+    merged.insert(
+        "csp_nonce".into(),
+        serde_json::Value::String(nonce.0.clone()),
+    );
     if let serde_json::Value::Object(ctx) = loaded.ctx {
         for (k, v) in ctx {
             merged.insert(k, v);
@@ -173,7 +179,10 @@ mod tests {
             split_last_segment("partials/todo.html/default"),
             Some(("partials/todo.html", "default"))
         );
-        assert_eq!(split_last_segment("index.html/default"), Some(("index.html", "default")));
+        assert_eq!(
+            split_last_segment("index.html/default"),
+            Some(("index.html", "default"))
+        );
         assert_eq!(split_last_segment("no-slash"), None);
     }
 }

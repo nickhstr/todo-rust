@@ -19,7 +19,10 @@ async fn preview_index_lists_templates() {
         .unwrap();
     assert_eq!(res.status(), 200, "expected 200, got {}", res.status());
     let body = res.text().await.unwrap();
-    assert!(body.contains("partials/todo.html"), "body missing template path. body:\n{body}");
+    assert!(
+        body.contains("partials/todo.html"),
+        "body missing template path. body:\n{body}"
+    );
     assert!(body.contains("index.html"), "body missing index.html");
     assert!(
         !body.contains("_preview_shell.html"),
@@ -42,9 +45,15 @@ async fn preview_render_partial_shows_fixture_data() {
     assert_eq!(res.status(), 200, "expected 200, got {}", res.status());
     let body = res.text().await.unwrap();
     // The default fixture has title "Buy milk".
-    assert!(body.contains("Buy milk"), "body missing fixture title. body:\n{body}");
+    assert!(
+        body.contains("Buy milk"),
+        "body missing fixture title. body:\n{body}"
+    );
     // Host shell should be present for partials.
-    assert!(body.contains("PREVIEW"), "host shell PREVIEW bar missing. body:\n{body}");
+    assert!(
+        body.contains("PREVIEW"),
+        "host shell PREVIEW bar missing. body:\n{body}"
+    );
 }
 
 #[tokio::test]
@@ -88,8 +97,10 @@ async fn preview_render_full_page_skips_shell() {
     // login.html extends base.html, so the host shell's "PREVIEW" banner must
     // NOT be present. We expect the real base.html `<title>` containing the
     // localized page title instead.
-    assert!(!body.contains("__preview_bar"),
-        "host shell must be skipped for full-page templates");
+    assert!(
+        !body.contains("__preview_bar"),
+        "host shell must be skipped for full-page templates"
+    );
     // And the page should be a complete document (base.html applied).
     assert!(body.contains("<title>"), "missing base.html <title>");
 }
