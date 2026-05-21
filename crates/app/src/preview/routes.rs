@@ -58,11 +58,20 @@ pub async fn index(
     Extension(nonce): Extension<CspNonce>,
 ) -> Result<Response, AppError> {
     check_enabled(&state)?;
-    let entries: Vec<TemplateEntry> = discover(
-        &state.config.templates_dir,
-        &state.config.dev.preview_fixtures_dir,
-    )
-    .map_err(|e| AppError::Internal(format!("preview discover failed: {e}")))?;
+    let fixtures_dir = &state.config.dev.preview_fixtures_dir;
+    if !fixtures_dir.exists() {
+        // Quiet by default, but surface this loud once per request — the
+        // walker treats a missing dir as "no stories" and returns nothing,
+        // which renders an index where every template says [no fixtures].
+        // Easy to mistake for "I haven't written fixtures yet." when the
+        // real cause is a misconfigured path / unmounted volume.
+        tracing::warn!(
+            path = %fixtures_dir.display(),
+            "preview_fixtures_dir does not exist; every template will show as having no fixtures"
+        );
+    }
+    let entries: Vec<TemplateEntry> = discover(&state.config.templates_dir, fixtures_dir)
+        .map_err(|e| AppError::Internal(format!("preview discover failed: {e}")))?;
 
     let html = state.templates.render(
         "_preview_index.html",
