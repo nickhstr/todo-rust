@@ -1,0 +1,15 @@
+[meta]
+description = "Long list — stress-test list spacing and the empty state hide"
+
+[ctx]
+user = { id = "00000000-0000-0000-0000-000000000001", email = "alice@example.com", password_hash = "x", created_at = "2026-05-01T09:00:00Z", locale = "en", timezone = "UTC" }
+todos = [
+  { id = "aaaaaaaa-0000-0000-0000-000000000001", title = "Item one",   completed = false, created_at = "2026-05-20T10:00:00Z", updated_at = "2026-05-20T10:00:00Z" },
+  { id = "aaaaaaaa-0000-0000-0000-000000000002", title = "Item two",   completed = false, created_at = "2026-05-20T10:01:00Z", updated_at = "2026-05-20T10:01:00Z" },
+  { id = "aaaaaaaa-0000-0000-0000-000000000003", title = "Item three", completed = true,  created_at = "2026-05-20T10:02:00Z", updated_at = "2026-05-20T10:02:00Z" },
+  { id = "aaaaaaaa-0000-0000-0000-000000000004", title = "Item four",  completed = false, created_at = "2026-05-20T10:03:00Z", updated_at = "2026-05-20T10:03:00Z" },
+  { id = "aaaaaaaa-0000-0000-0000-000000000005", title = "Item five",  completed = true,  created_at = "2026-05-20T10:04:00Z", updated_at = "2026-05-20T10:04:00Z" },
+  { id = "aaaaaaaa-0000-0000-0000-000000000006", title = "Item six",   completed = false, created_at = "2026-05-20T10:05:00Z", updated_at = "2026-05-20T10:05:00Z" },
+  { id = "aaaaaaaa-0000-0000-0000-000000000007", title = "Item seven", completed = false, created_at = "2026-05-20T10:06:00Z", updated_at = "2026-05-20T10:06:00Z" },
+  { id = "aaaaaaaa-0000-0000-0000-000000000008", title = "Item eight", completed = true,  created_at = "2026-05-20T10:07:00Z", updated_at = "2026-05-20T10:07:00Z" },
+]

@@ -1,0 +1,7 @@
+[meta]
+description = "Login form with an error message displayed"
+
+[ctx]
+next = ""
+error = "Invalid email or password."
+dev_login_enabled = false
