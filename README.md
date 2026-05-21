@@ -214,6 +214,12 @@ just down-k8s   # delete the k3d cluster
 See `deploy/local/README.md` for the diff from prod and when to reach for
 this path vs `just up` (docker compose) vs a real preview env.
 
+## Developer tools
+
+### Template preview
+
+Dev-only: with the dev compose stack up, browse to `http://localhost:3000/__preview` to render any template in `templates/` against hand-edited TOML fixtures in `fixtures/templates/`. Off in production builds. Spec: [docs/superpowers/specs/2026-05-20-template-preview-design.md](docs/superpowers/specs/2026-05-20-template-preview-design.md).
+
 ## Further reading
 
 See `CLAUDE.md` for an annotated tour of the tree, deviations from the spec, and a running list of sharp edges (CSP requirements for Alpine + htmx, `--watch=always` for Tailwind in detached containers, Tempo's `?start=&end=` requirement, OTel context activator for log↔trace correlation, etc.).
