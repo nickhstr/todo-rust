@@ -81,6 +81,12 @@ pub fn build_router(
     #[cfg(debug_assertions)]
     let api = api.route("/dev/login", post(crate::routes::dev::auto_login));
 
+    // Preview tool. Runtime-gated by `dev.preview_enabled` inside the handlers
+    // so an accidental config flip alone doesn't expose it; the whole module
+    // is also `#[cfg(debug_assertions)]`-gated so it's absent in --release.
+    #[cfg(debug_assertions)]
+    let api = api.nest("/__preview", crate::preview::router());
+
     // i18n + CSP nonce only run on routes that actually render HTML.
     // `/static/*` and the health endpoints don't need locale extraction
     // or per-request CSP nonces, so scope these layers to `api` rather
